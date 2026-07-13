@@ -1,0 +1,20 @@
+{
+  "rewrites": [
+    {
+      "source": "/zoho-api/(.*)",
+      "destination": "https://creator.zoho.com/$1"
+    },
+    {
+      "source": "/zoho-accounts/(.*)",
+      "destination": "https://accounts.zoho.com/$1"
+    },
+    {
+      "source": "/catalyst-token(.*)",
+      "destination": "https://cobnb-909749525.catalystserverless.com/catalyst-token$1"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
