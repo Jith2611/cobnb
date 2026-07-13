@@ -79,7 +79,7 @@ const UpdatePassword = () => {
 
   return (
     <div className="auth-split-container">
-      <div className="auth-image-panel" style={{ backgroundImage: "url('/images/splash.png')" }}>
+      <div className="auth-image-panel" style={{ backgroundImage: `url('${import.meta.env.BASE_URL}images/splash.png')` }}>
         <div className="auth-image-overlay">
           <h2>MAXIMISE YOUR PROPERTY INCOME</h2>
           <p>Experience the luxury of professional Airbnb management.</p>
@@ -88,7 +88,7 @@ const UpdatePassword = () => {
       
       <div className="auth-form-panel">
         <div className="auth-form-container">
-          <img src="/images/logo.png" alt="COBNB Logo" className="auth-logo" />
+          <img src={`${import.meta.env.BASE_URL}images/logo.png`} alt="COBNB Logo" className="auth-logo" />
           
           <h2 className="auth-title">Create New Password</h2>
           <p className="auth-subtitle">Please enter your new password below</p>

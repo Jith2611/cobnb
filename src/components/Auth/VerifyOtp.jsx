@@ -133,7 +133,7 @@ const VerifyOtp = () => {
 
   return (
     <div className="auth-split-container">
-      <div className="auth-image-panel" style={{ backgroundImage: "url('/images/splash.png')" }}>
+      <div className="auth-image-panel" style={{ backgroundImage: `url('${import.meta.env.BASE_URL}images/splash.png')` }}>
         <div className="auth-image-overlay">
           <h2>MAXIMISE YOUR PROPERTY INCOME</h2>
           <p>Experience the luxury of professional Airbnb management.</p>

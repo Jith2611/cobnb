@@ -7,15 +7,15 @@ export const tourdata = [
     {
         id : 1,
         title : '1 Day Tour Melaka',
-        thumbnail : '/images/tour1.jpeg',
-        mainimg : '/images/tour1desc.jpeg',
+        thumbnail : `${import.meta.env.BASE_URL}images/tour1.jpeg`,
+        mainimg : `${import.meta.env.BASE_URL}images/tour1desc.jpeg`,
         price : 349
     },
     {
         id : 1,
         title : '1 Day Tour Perak',
-        thumbnail : '/images/tour2.jpeg',
-        mainimg : '/images/tour2desc.jpeg',
+        thumbnail : `${import.meta.env.BASE_URL}images/tour2.jpeg`,
+        mainimg : `${import.meta.env.BASE_URL}images/tour2desc.jpeg`,
         price : 420
     },
 ]

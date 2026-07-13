@@ -25,12 +25,12 @@ const Splash = () => {
     <div className="splash-container">
       <div 
         className="splash-background" 
-        style={{ backgroundImage: "url('/images/splash.png')" }}
+        style={{ backgroundImage: `url('${import.meta.env.BASE_URL}images/splash.png')` }}
       >
         <div className="splash-overlay">
           <div className="splash-content">
             <motion.img 
-              src="/images/logo.png" 
+              src={`${import.meta.env.BASE_URL}images/logo.png`} 
               alt="COBNB Logo" 
               className="splash-logo"
               initial={{ opacity: 0, scale: 0.95 }}

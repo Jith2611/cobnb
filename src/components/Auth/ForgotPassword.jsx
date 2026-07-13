@@ -92,7 +92,7 @@ const ForgotPassword = () => {
 
   return (
     <div className="auth-split-container">
-      <div className="auth-image-panel" style={{ backgroundImage: "url('/images/splash.png')" }}>
+      <div className="auth-image-panel" style={{ backgroundImage: `url('${import.meta.env.BASE_URL}images/splash.png')` }}>
         <div className="auth-image-overlay">
           <h2>MAXIMISE YOUR PROPERTY INCOME</h2>
           <p>Experience the luxury of professional Airbnb management.</p>
@@ -101,7 +101,7 @@ const ForgotPassword = () => {
       
       <div className="auth-form-panel">
         <div className="auth-form-container">
-          <img src="/images/logo.png" alt="COBNB Logo" className="auth-logo" />
+          <img src={`${import.meta.env.BASE_URL}images/logo.png`} alt="COBNB Logo" className="auth-logo" />
           
           <h2 className="auth-title">Reset Password</h2>
           <p className="auth-subtitle">We will send an OTP to your registered email</p>
