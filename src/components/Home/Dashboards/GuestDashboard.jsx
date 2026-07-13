@@ -520,6 +520,7 @@ const GuestDashboard = () => {
           align-items: center;
           justify-content: center;
           margin: -40px -40px 60px -40px;
+          padding-top: 80px;
         }
 
         .hero-section::before {
@@ -870,7 +871,8 @@ const GuestDashboard = () => {
         @media (max-width: 768px) {
           .hero-section {
             margin: -20px -20px 40px -20px;
-            height: 400px;
+            height: 420px;
+            padding-top: 70px;
           }
           .hero-text h2 {
             font-size: 32px;

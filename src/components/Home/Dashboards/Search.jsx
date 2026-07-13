@@ -108,10 +108,19 @@ const Search = () => {
   };
 
   return (
-    <div className="search-container" style={{ maxWidth: '1440px', margin: '0 auto', padding: '120px 40px 60px 40px', minHeight: 'calc(100vh - 80px)' }}>
-      
+    <div className="search-container" style={{ maxWidth: '1440px', margin: '0 auto', padding: '120px 16px 60px 16px', minHeight: 'calc(100vh - 80px)' }}>
+      <style dangerouslySetInnerHTML={{__html: `
+        @media (min-width: 640px) {
+          .search-outer-container { padding-left: 40px !important; padding-right: 40px !important; }
+          .search-input-bar { padding: 24px 32px !important; }
+        }
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `}} />
       {/* Search Input */}
-      <div style={{ backgroundColor: 'var(--color-secondary)', padding: '24px 32px', borderRadius: 'var(--radius-sm)', boxShadow: 'var(--shadow-md)', display: 'flex', alignItems: 'center', gap: '20px', marginBottom: '48px' }}>
+      <div className="search-input-bar" style={{ backgroundColor: 'var(--color-secondary)', padding: '16px 16px', borderRadius: 'var(--radius-sm)', boxShadow: 'var(--shadow-md)', display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '32px' }}>
         <SearchIcon color="var(--color-primary)" size={24} />
         <input 
           type="text" 
@@ -179,12 +188,6 @@ const Search = () => {
         </div>
       )}
 
-      <style dangerouslySetInnerHTML={{__html: `
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-      `}} />
     </div>
   );
 };
