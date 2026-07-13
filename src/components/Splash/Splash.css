@@ -1,0 +1,109 @@
+.splash-container {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background-color: var(--color-bg-dark);
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 9999;
+}
+
+.splash-background {
+  width: 100%;
+  height: 100%;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.splash-overlay {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(to bottom, rgba(17,17,17,0.3) 0%, rgba(17,17,17,0.9) 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.splash-content {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  height: 100%;
+  padding: 8vh 20px 15vh 20px;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 800px;
+}
+
+.splash-logo {
+  max-width: 240px;
+  width: 80%;
+  height: auto;
+  margin-top: 15vh;
+  filter: drop-shadow(0 4px 10px rgba(0,0,0,0.8));
+}
+
+.splash-text-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.splash-text-container {
+  text-align: center;
+  color: var(--color-secondary);
+  margin-bottom: 40px;
+}
+
+.splash-title {
+  font-family: var(--font-heading);
+  font-size: 22px;
+  font-weight: 500;
+  margin: 0;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: var(--color-accent);
+  text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+}
+
+.splash-subtitle {
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 300;
+  margin-top: 12px;
+  letter-spacing: 1.5px;
+  opacity: 0.8;
+  text-transform: uppercase;
+}
+
+.splash-loader-line-container {
+  width: 160px;
+  height: 1px;
+  background-color: rgba(255, 255, 255, 0.2);
+  overflow: hidden;
+}
+
+.splash-loader-line {
+  height: 100%;
+  background-color: var(--color-accent);
+}
+
+/* Responsive tweaks */
+@media (max-width: 768px) {
+  .splash-title {
+    font-size: 16px;
+    letter-spacing: 3px;
+  }
+  .splash-subtitle {
+    font-size: 11px;
+    letter-spacing: 1px;
+  }
+  .splash-logo {
+    max-width: 200px;
+  }
+}

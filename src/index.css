@@ -1,0 +1,159 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Outfit:wght@300;400;500;600;700;800&display=swap');
+
+:root {
+  /* Color Palette - Marriott Luxury Vibe */
+  --color-primary: #111111;       /* Deep Charcoal / Near Black */
+  --color-secondary: #ffffff;     /* Stark White */
+  --color-accent: #C5A880;        /* Warm Champagne / Gold */
+  --color-accent-hover: #A38A6A;  /* Darker Gold */
+  
+  --color-text-main: #111111;
+  --color-text-muted: #666666;
+  --color-text-inverse: #ffffff;
+  
+  --color-bg-main: #ffffff;
+  --color-bg-secondary: #FAFAFA;  /* Very subtle gray */
+  --color-bg-dark: #111111;
+  
+  --color-border: #E5E5E5;        /* Very light gray for elegant dividers */
+  --color-border-dark: #333333;
+  
+  /* Typography */
+  --font-heading: 'Outfit', sans-serif;
+  --font-body: 'DM Sans', sans-serif;
+  
+  /* Shadow & Radii - Sharper, minimalist */
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.02);
+  --shadow-md: 0 4px 20px rgba(0,0,0,0.06);
+  --shadow-hover: 0 8px 30px rgba(0,0,0,0.1);
+  
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+  --radius-full: 9999px;
+
+  /* Transitions */
+  --transition-fast: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[data-theme='dark'] {
+  --color-primary: #ffffff;
+  --color-secondary: #1c1c21;
+  
+  --color-text-main: #e2e8f0;
+  --color-text-muted: #a0aec0;
+  --color-text-inverse: #111111;
+  
+  --color-bg-main: #0f0f13;
+  --color-bg-secondary: #1c1c21;
+  
+  --color-border: #333333;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-body);
+  color: var(--color-text-main);
+  background-color: var(--color-bg-main);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+/* Utilities */
+.container {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+@media (min-width: 768px) {
+  .container {
+    padding: 0 40px;
+  }
+}
+
+@media (min-width: 1128px) {
+  .container {
+    padding: 0 80px;
+  }
+}
+
+.flex {
+  display: flex;
+}
+
+.items-center {
+  align-items: center;
+}
+
+.justify-between {
+  justify-content: space-between;
+}
+
+.justify-center {
+  justify-content: center;
+}
+
+/* Animations & Luxury Shadows */
+:root {
+  --shadow-luxury: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+}
+
+.hover-lift {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-luxury);
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in-up {
+  animation: fadeInUp 0.6s ease-out forwards;
+}
+
+.stagger-1 { animation-delay: 0.1s; }
+.stagger-2 { animation-delay: 0.2s; }
+.stagger-3 { animation-delay: 0.3s; }
+.stagger-4 { animation-delay: 0.4s; }
+
+/* Global Mobile Scale Down */
+@media (max-width: 768px) {
+  #root {
+    zoom: 0.85; /* Scales down the entire UI and fonts slightly on mobile */
+  }
+  
+  /* Or a fallback for browsers that don't support zoom well */
+  * {
+    /* If we used rems this would work, but zoom handles px */
+  }
+}

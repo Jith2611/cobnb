@@ -1,0 +1,9 @@
+export default {
+    LOGIN: "LOGIN",
+    LOGOUT: 'LOGOUT',
+    PROFILE: 'PROFILE',
+    LOADER: 'LOADER',
+    CHECKINTERNET: 'CHECKINTERNET',
+    IS_FIRST_TIME: 'IS_FIRST_TIME',
+    IS_OWNER: 'IS_OWNER'
+}
