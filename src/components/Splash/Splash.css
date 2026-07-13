@@ -1,11 +1,11 @@
 .splash-container {
-  width: 100vw;
-  height: 100vh;
-  overflow: hidden;
-  background-color: var(--color-bg-dark);
   position: fixed;
   top: 0;
   left: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+  background-color: var(--color-bg-dark);
   z-index: 9999;
 }
 
@@ -95,6 +95,11 @@
 
 /* Responsive tweaks */
 @media (max-width: 768px) {
+  .splash-content {
+    padding: 0 20px;
+    justify-content: center;
+    gap: 15vh;
+  }
   .splash-title {
     font-size: 16px;
     letter-spacing: 3px;
@@ -105,5 +110,6 @@
   }
   .splash-logo {
     max-width: 200px;
+    margin-top: 0;
   }
 }

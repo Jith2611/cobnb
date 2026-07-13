@@ -25,6 +25,16 @@ export const getCommonHeaders = () => {
 
 export async function ApiRequest(endUrl, method, headers, body) {
   try {
+    if (import.meta.env.PROD) {
+      if (endUrl.startsWith('/zoho-api')) {
+        endUrl = endUrl.replace(/^\/zoho-api/, 'https://creator.zoho.com');
+      } else if (endUrl.startsWith('/zoho-accounts')) {
+        endUrl = endUrl.replace(/^\/zoho-accounts/, 'https://accounts.zoho.com');
+      } else if (endUrl.startsWith('/catalyst-token')) {
+        endUrl = 'https://cobnb-909749525.catalystserverless.com' + endUrl;
+      }
+    }
+    
     let requestHeaders = getCommonHeaders();
     if (headers) {
       requestHeaders = { ...requestHeaders, ...headers };
