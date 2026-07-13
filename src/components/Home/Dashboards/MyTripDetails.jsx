@@ -43,7 +43,7 @@ const MyTripDetails = () => {
       // Fetch Hotel Details
       if (preData?.Building_Name?.ID) {
         const hotelRes = await zohoAxios.get(
-          `https://creator.zoho.com/api/v2/brandontan18/housekeeping-system/report/All_Building_Report/${preData?.Building_Name?.ID}`,
+          `/zoho-api/api/v2/brandontan18/housekeeping-system/report/All_Building_Report/${preData?.Building_Name?.ID}`,
           { headers: { Authorization: `Zoho-oauthtoken ${refreshToken}` } }
         );
         if (hotelRes?.data?.code === 3000) {
@@ -54,7 +54,7 @@ const MyTripDetails = () => {
       // Fetch Property details (for instructions & status)
       if (preData?.Listing_Name?.ID) {
         const propRes = await zohoAxios.get(
-          `https://creator.zoho.com/api/v2/brandontan18/housekeeping-system/report/All_Properties?ID=${preData?.Listing_Name?.ID}`,
+          `/zoho-api/api/v2/brandontan18/housekeeping-system/report/All_Properties?ID=${preData?.Listing_Name?.ID}`,
           { headers: { Authorization: `Zoho-oauthtoken ${refreshToken}` } }
         );
         if (propRes?.data?.code === 3000 && propRes.data.data.length > 0) {
@@ -89,14 +89,14 @@ const MyTripDetails = () => {
       let params = { data: { Checked_Out: 'true' } };
       
       await zohoAxios.patch(
-        `https://creator.zoho.com/api/v2/brandontan18/housekeeping-system/report/Property_Reservation_System_Report/${preData?.ID}`,
+        `/zoho-api/api/v2/brandontan18/housekeeping-system/report/Property_Reservation_System_Report/${preData?.ID}`,
         params,
         { headers: { Authorization: `Zoho-oauthtoken ${token}` } }
       );
       
       if (allPropertiesData?.ID) {
         await zohoAxios.patch(
-          `https://creator.zoho.com/api/v2/brandontan18/housekeeping-system/report/All_Properties/${allPropertiesData?.ID}`,
+          `/zoho-api/api/v2/brandontan18/housekeeping-system/report/All_Properties/${allPropertiesData?.ID}`,
           { data: { Room_Status: 'Checked_Out' } },
           { headers: { Authorization: `Zoho-oauthtoken ${token}` } }
         );
@@ -167,7 +167,7 @@ const MyTripDetails = () => {
       
       const refreshToken = await getData('refreshToken');
       const res = await zohoAxios.post(
-        `https://creator.zoho.com/api/v2/brandontan18/housekeeping-system/form/IN_STAY_SATISFACTION_SURVEY`,
+        `/zoho-api/api/v2/brandontan18/housekeeping-system/form/IN_STAY_SATISFACTION_SURVEY`,
         params,
         { headers: { Authorization: `Zoho-oauthtoken ${refreshToken}` } }
       );

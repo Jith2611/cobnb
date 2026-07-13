@@ -23,7 +23,7 @@ const Search = () => {
       setLoading(true);
       const refreshToken = await getData('refreshToken');
       const res = await zohoAxios.get(
-        `https://creator.zoho.com/api/v2/brandontan18/housekeeping-system/report/All_Building_Report?Mobile_App_Active=Active`,
+        `/zoho-api/api/v2/brandontan18/housekeeping-system/report/All_Building_Report?Mobile_App_Active=Active`,
         { headers: { Authorization: `Zoho-oauthtoken ${refreshToken}` } }
       );
       setLoading(false);

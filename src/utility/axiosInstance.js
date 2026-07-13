@@ -8,7 +8,7 @@
 import axios from 'axios';
 import { storeData, getData } from './LocalStorageService';
 
-const TOKEN_URL = 'https://cobnb-909749525.catalystserverless.com/server/zohoTokenManager_COBNB';
+const TOKEN_URL = '/server/zohoTokenManager_COBNB';
 
 // Deduplicate simultaneous token fetches
 let isRefreshing = false;

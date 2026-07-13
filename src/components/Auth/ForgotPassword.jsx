@@ -25,7 +25,7 @@ const ForgotPassword = () => {
     try {
       const refreshToken = await getData('refreshToken');
       const res = await axios.get(
-        `https://creator.zoho.com/api/v2/brandontan18/housekeeping-system/report/loyalty_members_Report?member_email=${email}`,
+        `/zoho-api/api/v2/brandontan18/housekeeping-system/report/loyalty_members_Report?member_email=${email}`,
         {
           headers: {
             Authorization: `Zoho-oauthtoken ${refreshToken}`,
@@ -68,7 +68,7 @@ const ForgotPassword = () => {
       };
       
       const res = await axios.patch(
-        `https://creator.zoho.com/api/v2/brandontan18/housekeeping-system/report/loyalty_members_Report/${ID}`,
+        `/zoho-api/api/v2/brandontan18/housekeeping-system/report/loyalty_members_Report/${ID}`,
         params,
         {
           headers: {

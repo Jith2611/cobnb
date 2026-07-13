@@ -27,7 +27,7 @@ const TechnicianDashboard = () => {
       const refreshToken = await getData('refreshToken');
       
       const res = await zohoAxios.get(
-        `https://creator.zoho.com/api/v2/brandontan18/housekeeping-system/report/loyalty_members_Report/${Id}`,
+        `/zoho-api/api/v2/brandontan18/housekeeping-system/report/loyalty_members_Report/${Id}`,
         { headers: { Authorization: `Zoho-oauthtoken ${refreshToken}` } }
       );
       
@@ -52,13 +52,13 @@ const TechnicianDashboard = () => {
       
       // Fetch Assigned
       const resAssigned = await zohoAxios.get(
-        `https://creator.zoho.com/api/v2/brandontan18/housekeeping-system/report/Maintenance_Misc_Request_Report?Assign_To.ID=${internalId}&Job_Status=Assigned`,
+        `/zoho-api/api/v2/brandontan18/housekeeping-system/report/Maintenance_Misc_Request_Report?Assign_To.ID=${internalId}&Job_Status=Assigned`,
         { headers: { Authorization: `Zoho-oauthtoken ${refreshToken}` } }
       );
       
       // Fetch All
       const resAll = await zohoAxios.get(
-        `https://creator.zoho.com/api/v2/brandontan18/housekeeping-system/report/Maintenance_Misc_Request_Report?Assign_To.ID=${internalId}`,
+        `/zoho-api/api/v2/brandontan18/housekeeping-system/report/Maintenance_Misc_Request_Report?Assign_To.ID=${internalId}`,
         { headers: { Authorization: `Zoho-oauthtoken ${refreshToken}` } }
       );
       

@@ -15,6 +15,10 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/zoho-accounts/, ''),
       },
+      '/server': {
+        target: 'https://cobnb-909749525.catalystserverless.com',
+        changeOrigin: true,
+      },
       '/catalyst-token': {
         target: 'https://cobnb-909749525.catalystserverless.com',
         changeOrigin: true,

@@ -26,7 +26,7 @@ const Rewards = () => {
       setLoading(true);
       const refreshToken = await getData('refreshToken');
       const res = await zohoAxios.get(
-        `https://creator.zoho.com/api/v2/brandontan18/housekeeping-system/report/Loyalty_App_Rewards_List_Report`,
+        `/zoho-api/api/v2/brandontan18/housekeeping-system/report/Loyalty_App_Rewards_List_Report`,
         {
           headers: {
             Authorization: `Zoho-oauthtoken ${refreshToken}`,

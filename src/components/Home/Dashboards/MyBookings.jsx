@@ -52,7 +52,7 @@ const MyBookings = () => {
       setLoading(true);
       const refreshToken = await getData('refreshToken');
       const res = await zohoAxios.get(
-        `https://creator.zoho.com/api/v2/brandontan18/housekeeping-system/report/Property_Reservation_System_Report?guest_email=${email}`,
+        `/zoho-api/api/v2/brandontan18/housekeeping-system/report/Property_Reservation_System_Report?guest_email=${email}`,
         { headers: { Authorization: `Zoho-oauthtoken ${refreshToken}` } },
       );
       setLoading(false);
@@ -68,7 +68,7 @@ const MyBookings = () => {
       setLoading(true);
       const refreshToken = await getData('refreshToken');
       const res = await zohoAxios.get(
-        `https://creator.zoho.com/api/v2/brandontan18/housekeeping-system/report/Property_Reservation_System_Report?Phone_number=%2B${phone}`,
+        `/zoho-api/api/v2/brandontan18/housekeeping-system/report/Property_Reservation_System_Report?Phone_number=%2B${phone}`,
         { headers: { Authorization: `Zoho-oauthtoken ${refreshToken}` } },
       );
       setLoading(false);
