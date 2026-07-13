@@ -511,7 +511,7 @@ const GuestDashboard = () => {
         }
 
         .hero-section {
-          background-image: url('/images/bgnewcobnb.jpg');
+          background-image: url('${import.meta.env.BASE_URL}images/bgnewcobnb.jpg');
           background-size: cover;
           background-position: center;
           height: 480px;
