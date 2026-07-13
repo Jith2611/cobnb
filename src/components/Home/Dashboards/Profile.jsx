@@ -146,9 +146,9 @@ const Profile = () => {
 
   return (
     <div style={{ minHeight: '100vh', position: 'relative', overflowX: 'hidden' }}>
-      {/* Background & Overlay */}
-      <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundImage: 'url(/images/bg3.jpg)', backgroundSize: 'cover', backgroundPosition: 'center', zIndex: -2 }}></div>
-      <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(10, 10, 12, 0.90)', zIndex: -1 }}></div>
+      {/* Background Image & Overlay */}
+      <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundImage: `url(${import.meta.env.BASE_URL}images/bg3.jpg)`, backgroundSize: 'cover', backgroundPosition: 'center', zIndex: -2 }}></div>
+      <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)', zIndex: -1 }}></div>
 
       <div style={{ maxWidth: '900px', margin: '0 auto', padding: '100px 24px 60px', position: 'relative', zIndex: 1 }}>
         

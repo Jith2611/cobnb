@@ -298,7 +298,7 @@ const GuestDashboard = () => {
           <div style={{
             position: 'absolute',
             top: 0, left: 0, right: 0, bottom: 0,
-            backgroundImage: 'url(/images/bg3.jpg)',
+            backgroundImage: `url(${import.meta.env.BASE_URL}images/bg3.jpg)`,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
             zIndex: 0,

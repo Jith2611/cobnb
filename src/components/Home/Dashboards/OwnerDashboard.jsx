@@ -121,7 +121,7 @@ const OwnerDashboard = () => {
       
       {/* Hero Section */}
       <div className="hero-section" style={{ height: '400px' }}>
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundImage: 'url(/images/bg3.jpg)', backgroundSize: 'cover', backgroundPosition: 'center', zIndex: 0 }}></div>
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundImage: `url(${import.meta.env.BASE_URL}images/bg3.jpg)`, backgroundSize: 'cover', backgroundPosition: 'center', zIndex: 0 }}></div>
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(17, 17, 17, 0.5)', zIndex: 1 }}></div>
         
         <div className="hero-content" style={{ zIndex: 2 }}>
