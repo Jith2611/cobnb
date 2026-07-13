@@ -17,8 +17,8 @@ const Login = () => {
   const checkOwnerOrAgent = async (userEmail, userPassword, user) => {
     try {
       const encodedEmail = encodeURIComponent(userEmail);
-      let url = `/zoho-api/api/v2/brandontan18/housekeeping-system/report/All_Properties?Owner_Email=${encodedEmail}`;
-      let url2 = `/zoho-api/api/v2/brandontan18/housekeeping-system/report/All_Properties?Sales_Demo_Email=${encodedEmail}`;
+      let url = `https://creator.zoho.com/api/v2/brandontan18/housekeeping-system/report/All_Properties?Owner_Email=${encodedEmail}`;
+      let url2 = `https://creator.zoho.com/api/v2/brandontan18/housekeeping-system/report/All_Properties?Sales_Demo_Email=${encodedEmail}`;
       
       const ownerRes = await zohoAxios.get(
         userEmail === 'demo.cobnb@gmail.com' && userPassword === 'ilovecobnb100' ? url2 : url
@@ -39,8 +39,8 @@ const Login = () => {
 
     try {
       const encodedEmail = encodeURIComponent(userEmail);
-      let url = `/zoho-api/api/v2/brandontan18/housekeeping-system/report/All_Properties?Agent_Email=${encodedEmail}`;
-      let url1 = `/zoho-api/api/v2/brandontan18/housekeeping-system/report/All_Properties?Agent_Demo_Email=${encodedEmail}`;
+      let url = `https://creator.zoho.com/api/v2/brandontan18/housekeeping-system/report/All_Properties?Agent_Email=${encodedEmail}`;
+      let url1 = `https://creator.zoho.com/api/v2/brandontan18/housekeeping-system/report/All_Properties?Agent_Demo_Email=${encodedEmail}`;
       
       const agentRes = await zohoAxios.get(
         userEmail === 'demo1.cobnb@gmail.com' && userPassword === 'ilovecobnb200' ? url1 : url
@@ -83,7 +83,7 @@ const Login = () => {
       const encodedPassword = encodeURIComponent(password);
       // zohoAxios interceptor auto-refreshes token if needed and retries
       const res = await zohoAxios.get(
-        `/zoho-api/api/v2/brandontan18/housekeeping-system/report/loyalty_members_Report?member_email=${encodedEmail}&Key=${encodedPassword}`
+        `https://creator.zoho.com/api/v2/brandontan18/housekeeping-system/report/loyalty_members_Report?member_email=${encodedEmail}&Key=${encodedPassword}`
       );
 
       if (res?.data?.code === 3000) {

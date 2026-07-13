@@ -57,7 +57,7 @@ const VerifyOtp = () => {
     try {
       const refreshToken = await getData('refreshToken');
       const res = await axios.get(
-        `/zoho-api/api/v2/brandontan18/housekeeping-system/report/loyalty_members_Report/${Id}`,
+        `https://creator.zoho.com/api/v2/brandontan18/housekeeping-system/report/loyalty_members_Report/${Id}`,
         {
           headers: {
             Authorization: `Zoho-oauthtoken ${refreshToken}`,
@@ -107,7 +107,7 @@ const VerifyOtp = () => {
 
       const refreshToken = await getData('refreshToken');
       const res = await axios.patch(
-        `/zoho-api/api/v2/brandontan18/housekeeping-system/report/loyalty_members_Report/${Id}`,
+        `https://creator.zoho.com/api/v2/brandontan18/housekeeping-system/report/loyalty_members_Report/${Id}`,
         params,
         {
           headers: {

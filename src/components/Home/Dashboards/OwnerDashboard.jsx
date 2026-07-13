@@ -46,7 +46,7 @@ const OwnerDashboard = () => {
       const refreshToken = await getData('refreshToken');
       
       const res = await zohoAxios.get(
-        `/zoho-api/api/v2/brandontan18/housekeeping-system/report/loyalty_members_Report/${Id}`,
+        `https://creator.zoho.com/api/v2/brandontan18/housekeeping-system/report/loyalty_members_Report/${Id}`,
         { headers: { Authorization: `Zoho-oauthtoken ${refreshToken}` } }
       );
       
@@ -70,8 +70,8 @@ const OwnerDashboard = () => {
       const refreshToken = await getData('refreshToken');
       const encodedEmail = encodeURIComponent(email);
       const url = email === 'demo.cobnb@gmail.com' 
-        ? `/zoho-api/api/v2/brandontan18/housekeeping-system/report/All_Properties?Sales_Demo_Email=${encodedEmail}`
-        : `/zoho-api/api/v2/brandontan18/housekeeping-system/report/All_Properties?Owner_Email=${encodedEmail}`;
+        ? `https://creator.zoho.com/api/v2/brandontan18/housekeeping-system/report/All_Properties?Sales_Demo_Email=${encodedEmail}`
+        : `https://creator.zoho.com/api/v2/brandontan18/housekeeping-system/report/All_Properties?Owner_Email=${encodedEmail}`;
         
       const res = await zohoAxios.get(url, {
         headers: { Authorization: `Zoho-oauthtoken ${refreshToken}` }
@@ -98,7 +98,7 @@ const OwnerDashboard = () => {
       const refreshToken = await getData('refreshToken');
       const encodedEmail = encodeURIComponent(email);
       const res = await zohoAxios.get(
-        `/zoho-api/api/v2/brandontan18/housekeeping-system/report/All_Properties?Agent_Email=${encodedEmail}`,
+        `https://creator.zoho.com/api/v2/brandontan18/housekeeping-system/report/All_Properties?Agent_Email=${encodedEmail}`,
         { headers: { Authorization: `Zoho-oauthtoken ${refreshToken}` } }
       );
       if (res?.data?.code === 3000) setCheckIsAgent(true);

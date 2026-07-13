@@ -63,7 +63,7 @@ const Signup = () => {
       };
 
       const res = await axios.post(
-        `/zoho-api/api/v2/brandontan18/housekeeping-system/form/loyalty_members`,
+        `https://creator.zoho.com/api/v2/brandontan18/housekeeping-system/form/loyalty_members`,
         params,
         {
           headers: {

@@ -53,7 +53,7 @@ const AgentDashboard = () => {
     try {
       const isDemo = user?.member_email === 'demo1.cobnb@gmail.com';
       const emailParam = isDemo ? 'Agent_Demo_Email' : 'Agent_Email';
-      const url = `/zoho-api/api/v2/brandontan18/housekeeping-system/report/All_Properties?${emailParam}=${encodeURIComponent(user?.member_email)}`;
+      const url = `https://creator.zoho.com/api/v2/brandontan18/housekeeping-system/report/All_Properties?${emailParam}=${encodeURIComponent(user?.member_email)}`;
       const res = await zohoAxios.get(url);
       if (res?.data?.code === 3000) {
         setProperty(res.data.data);
@@ -67,7 +67,7 @@ const AgentDashboard = () => {
       const emailField = isDemo ? 'Agent_Demo_Email' : 'Agent_Email';
       const dateRange = `${currentYear}-${currentMonthNo}`;
 
-      const revUrl = `/zoho-api/api/v2/brandontan18/housekeeping-system/report/Master_Statement_Report?Listing_Number.${emailField}=${encodeURIComponent(user?.member_email)}&Month_Year=${dateRange}`;
+      const revUrl = `https://creator.zoho.com/api/v2/brandontan18/housekeeping-system/report/Master_Statement_Report?Listing_Number.${emailField}=${encodeURIComponent(user?.member_email)}&Month_Year=${dateRange}`;
       const revRes = await zohoAxios.get(revUrl);
       if (revRes.data.code === 3000) {
         let payout = 0;
@@ -93,7 +93,7 @@ const AgentDashboard = () => {
         d.setMonth(d.getMonth() - 1);
       }
 
-      const url = `/zoho-api/api/v2/brandontan18/housekeeping-system/report/Master_Statement_Report?Listing_Number.${emailField}=${encodeURIComponent(user?.member_email)}`;
+      const url = `https://creator.zoho.com/api/v2/brandontan18/housekeeping-system/report/Master_Statement_Report?Listing_Number.${emailField}=${encodeURIComponent(user?.member_email)}`;
       const res = await zohoAxios.get(url);
       if (res.data.code === 3000) {
         const grouped = {};

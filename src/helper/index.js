@@ -51,7 +51,7 @@ export async function ApiRequest(endUrl, method, headers, body) {
 
 export const fetchRefreshToken = async () => {
   try {
-    const res = await axios.post(`/zoho-accounts/oauth/v2/token?refresh_token=${refresh_token}&client_id=${client_id}&client_secret=${client_secret}&grant_type=${grant_type}`, {});
+    const res = await axios.post(`https://accounts.zoho.com/oauth/v2/token?refresh_token=${refresh_token}&client_id=${client_id}&client_secret=${client_secret}&grant_type=${grant_type}`, {});
     console.log(res.data, 'res');
     if (res?.data?.access_token) {
       await storeData('refreshToken', res?.data?.access_token);

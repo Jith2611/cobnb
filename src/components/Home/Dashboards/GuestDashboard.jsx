@@ -38,7 +38,7 @@ const GuestDashboard = () => {
       
       if (Id) {
         const userRes = await zohoAxios.get(
-          `/zoho-api/api/v2/brandontan18/housekeeping-system/report/loyalty_members_Report/${Id}`,
+          `https://creator.zoho.com/api/v2/brandontan18/housekeeping-system/report/loyalty_members_Report/${Id}`,
           { headers: { Authorization: `Zoho-oauthtoken ${refreshToken}` } }
         );
         if (userRes?.data?.code === 3000) {
@@ -48,7 +48,7 @@ const GuestDashboard = () => {
 
       // Load Hotels
       const hotelRes = await zohoAxios.get(
-        `/zoho-api/api/v2/brandontan18/housekeeping-system/report/All_Building_Report?Mobile_App_Active=Active`,
+        `https://creator.zoho.com/api/v2/brandontan18/housekeeping-system/report/All_Building_Report?Mobile_App_Active=Active`,
         { headers: { Authorization: `Zoho-oauthtoken ${refreshToken}` } }
       );
       if (hotelRes?.data?.code === 3000) {
@@ -57,7 +57,7 @@ const GuestDashboard = () => {
 
       // Load Popups
       const popupRes = await zohoAxios.get(
-        `/zoho-api/api/v2/brandontan18/housekeeping-system/report/COBNB_App_Popups_Report`,
+        `https://creator.zoho.com/api/v2/brandontan18/housekeeping-system/report/COBNB_App_Popups_Report`,
         { headers: { Authorization: `Zoho-oauthtoken ${refreshToken}` } }
       );
       if (popupRes?.data?.code === 3000) {

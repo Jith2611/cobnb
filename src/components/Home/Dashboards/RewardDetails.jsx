@@ -54,7 +54,7 @@ const RewardDetails = () => {
       };
 
       const res = await zohoAxios.post(
-        `/zoho-api/api/v2/brandontan18/housekeeping-system/form/Rewards_Claim_System`,
+        `https://creator.zoho.com/api/v2/brandontan18/housekeeping-system/form/Rewards_Claim_System`,
         params,
         { headers: { Authorization: `Zoho-oauthtoken ${refresh_token}` } }
       );
@@ -78,7 +78,7 @@ const RewardDetails = () => {
     try {
       setLoading(true);
       const refreshToken = await getData('refreshToken');
-      let url = `/zoho-api/api/v2/brandontan18/housekeeping-system/report/Rewards_Claim_System_Report?criteria=loyalty_members==${ID}`;
+      let url = `https://creator.zoho.com/api/v2/brandontan18/housekeeping-system/report/Rewards_Claim_System_Report?criteria=loyalty_members==${ID}`;
 
       const res = await zohoAxios.get(url, {
         headers: { Authorization: `Zoho-oauthtoken ${refreshToken}` },

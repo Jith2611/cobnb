@@ -58,7 +58,7 @@ const RevenueDashboard = () => {
     try {
       const isDemo = user?.member_email === 'demo.cobnb@gmail.com';
       const emailParam = isDemo ? 'Sales_Demo_Email' : 'Owner_Email';
-      const url = `/zoho-api/api/v2/brandontan18/housekeeping-system/report/All_Properties?${emailParam}=${encodeURIComponent(user?.member_email)}`;
+      const url = `https://creator.zoho.com/api/v2/brandontan18/housekeeping-system/report/All_Properties?${emailParam}=${encodeURIComponent(user?.member_email)}`;
       const res = await zohoAxios.get(url);
       if (res?.data?.code === 3000) {
         const props = res.data.data;
@@ -86,7 +86,7 @@ const RevenueDashboard = () => {
     try {
       const allColiving = [];
       for (const id of ids) {
-        const url = `/zoho-api/api/v2/brandontan18/housekeeping-system/report/AR_Validation_Report_Co_living?Listing_Name.ID=${id}&Date_field=${currentYear}-${currentMonthNo}-01`;
+        const url = `https://creator.zoho.com/api/v2/brandontan18/housekeeping-system/report/AR_Validation_Report_Co_living?Listing_Name.ID=${id}&Date_field=${currentYear}-${currentMonthNo}-01`;
         const res = await zohoAxios.get(url);
         if (res.data.code === 3000) allColiving.push(...res.data.data);
       }
@@ -100,7 +100,7 @@ const RevenueDashboard = () => {
       const emailField = isDemo ? 'Sales_Demo_Email' : 'Owner_Email';
       const dateRange = `${currentYear}-${currentMonthNo}`;
 
-      const revUrl = `/zoho-api/api/v2/brandontan18/housekeeping-system/report/Master_Statement_Report?Listing_Number.${emailField}=${encodeURIComponent(user?.member_email)}&Month_Year=${dateRange}`;
+      const revUrl = `https://creator.zoho.com/api/v2/brandontan18/housekeeping-system/report/Master_Statement_Report?Listing_Number.${emailField}=${encodeURIComponent(user?.member_email)}&Month_Year=${dateRange}`;
       const revRes = await zohoAxios.get(revUrl);
       if (revRes.data.code === 3000) {
         const payout = revRes.data.data.reduce((s, i) => s + (parseFloat(i.Owner_Payout) || 0), 0);
@@ -109,7 +109,7 @@ const RevenueDashboard = () => {
         setNightOccupied(nights);
       }
 
-      const bookUrl = `/zoho-api/api/v2/brandontan18/housekeeping-system/report/Property_Reservation_System_Report?Listing_Name.${emailField}=${encodeURIComponent(user?.member_email)}&Month_Year=${dateRange}`;
+      const bookUrl = `https://creator.zoho.com/api/v2/brandontan18/housekeeping-system/report/Property_Reservation_System_Report?Listing_Name.${emailField}=${encodeURIComponent(user?.member_email)}&Month_Year=${dateRange}`;
       const bookRes = await zohoAxios.get(bookUrl);
       if (bookRes.data.code === 3000) setBookings(bookRes.data.data);
     } catch (e) { console.error('STR Error', e); }
@@ -126,7 +126,7 @@ const RevenueDashboard = () => {
         d.setMonth(d.getMonth() - 1);
       }
 
-      const url = `/zoho-api/api/v2/brandontan18/housekeeping-system/report/Master_Statement_Report?Listing_Number.Owner_Email=${encodeURIComponent(user?.member_email)}`;
+      const url = `https://creator.zoho.com/api/v2/brandontan18/housekeeping-system/report/Master_Statement_Report?Listing_Number.Owner_Email=${encodeURIComponent(user?.member_email)}`;
       const res = await zohoAxios.get(url);
       if (res.data.code === 3000) {
         const grouped = {};
