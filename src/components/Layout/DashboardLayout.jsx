@@ -40,13 +40,12 @@ const DashboardLayout = ({ children }) => {
   
   const navItems = [
     { path: '/welcome', icon: Home, label: 'Home' },
-    { path: '/search', icon: Search, label: 'Find & Reserve' },
-    { path: '/calendar', icon: Calendar, label: 'COBNB' },
-    { path: '/my-bookings', icon: Calendar, label: 'My Trips' },
+    { path: '/search', icon: Search, label: 'Direct Booking' },
+    { path: '/my-bookings', icon: Calendar, label: 'My Bookings' },
     ...(isOwner === 1 ? [{ path: '/revenue-dashboard', icon: BarChart2, label: 'Revenue Dashboard' }] : []),
     ...(isOwner === 2 ? [{ path: '/agent-revenue-dashboard', icon: BarChart2, label: 'Agent Revenue' }] : []),
-    { path: '/rewards', icon: Gift, label: 'Reward/Coupons' },
-    { path: '/profile', icon: User, label: 'Sign In / Join' },
+    { path: '/rewards', icon: Gift, label: 'Cobnb Rewards' },
+    { path: '/profile', icon: User, label: 'My Profile Page' },
   ];
 
   useEffect(() => {

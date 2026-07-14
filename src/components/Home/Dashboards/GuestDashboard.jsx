@@ -317,7 +317,7 @@ const GuestDashboard = () => {
               The Best Rates Are Always Here
             </h3>
             <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: '20px', maxWidth: '600px', margin: '0 auto 48px auto', lineHeight: '1.6' }}>
-              Get the best prices plus free Wi-Fi when you become a Marriott Bonvoy member.
+              Get the best prices plus free Wi-Fi when you become a COBNB+ member.
             </p>
             
             <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', marginBottom: '60px', flexWrap: 'wrap' }}>
