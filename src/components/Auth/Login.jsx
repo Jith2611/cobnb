@@ -4,6 +4,8 @@ import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { saveUserData, setIsOwner } from '../../redux/actions';
 import { storeData } from '../../utility/LocalStorageService';
 import zohoAxios from '../../utility/axiosInstance';
+import { useGoogleLogin } from '@react-oauth/google';
+import axios from 'axios';
 import './Login.css';
 
 const Login = () => {
@@ -13,6 +15,109 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+
+  const handleGoogleSuccess = async (tokenResponse) => {
+    try {
+      setLoading(true);
+      setErrorMsg('');
+      const userInfo = await axios.get(
+        'https://www.googleapis.com/oauth2/v3/userinfo',
+        { headers: { Authorization: `Bearer ${tokenResponse.access_token}` } }
+      );
+      
+      const { email, given_name } = userInfo.data;
+      
+      const encodedEmail = encodeURIComponent(email);
+      const res = await zohoAxios.get(
+        `/zoho-api/api/v2/brandontan18/housekeeping-system/report/loyalty_members_Report?member_email=${encodedEmail}`
+      );
+      
+      if (res?.data?.code === 3000 && res?.data?.data?.length > 0) {
+        const user = res.data.data[0];
+        if (user?.Deleted === 'Deleted') {
+           setErrorMsg('Account Not Found or Account is Deleted!');
+           setLoading(false);
+           return;
+        }
+        
+        if (user.Member_Type === 'Cleaners') {
+          saveUserData({ ID: user.ID });
+          await storeData('ID', user.ID);
+          await storeData('userDetails', JSON.stringify(user));
+          setIsOwner(3);
+          setLoading(false);
+          navigate('/welcome');
+        } else if (user.Member_Type === 'Technicians') {
+          saveUserData({ ID: user.ID });
+          await storeData('ID', user.ID);
+          await storeData('userDetails', JSON.stringify(user));
+          setIsOwner(4);
+          setLoading(false);
+          navigate('/welcome');
+        } else {
+          await checkOwnerOrAgent(email, 'google', user);
+        }
+      } else {
+        await autoSignup(email, given_name);
+      }
+    } catch (error) {
+      console.error('Google login error', error);
+      setErrorMsg('Google Login failed.');
+      setLoading(false);
+    }
+  };
+
+  const autoSignup = async (email, firstName) => {
+    try {
+      const params = {
+        data: {
+          member_email: email,
+          Loyalty_member_phone_no: "N/A",
+          Points: "0",
+          Guest_Name: {
+            first_name: firstName || "Guest",
+          },
+          member_level: "Silver",
+          Key: "google",
+          Verification_Status: "Verified"
+        }
+      };
+
+      const res = await zohoAxios.post(
+        `/zoho-api/api/v2/brandontan18/housekeeping-system/form/loyalty_members`,
+        params
+      );
+
+      if (res?.data?.code === 3000) {
+        const encodedEmail = encodeURIComponent(email);
+        const fetchRes = await zohoAxios.get(
+          `/zoho-api/api/v2/brandontan18/housekeeping-system/report/loyalty_members_Report?member_email=${encodedEmail}`
+        );
+        if (fetchRes?.data?.code === 3000 && fetchRes?.data?.data?.length > 0) {
+           const newUser = fetchRes.data.data[0];
+           await checkOwnerOrAgent(email, 'google', newUser);
+        } else {
+           setErrorMsg('Signup successful but could not auto-login.');
+           setLoading(false);
+        }
+      } else {
+        setErrorMsg('Auto-signup failed.');
+        setLoading(false);
+      }
+    } catch (error) {
+      console.error('Auto signup error', error);
+      setErrorMsg('Auto-signup failed.');
+      setLoading(false);
+    }
+  };
+
+  const loginWithGoogle = useGoogleLogin({
+    onSuccess: handleGoogleSuccess,
+    onError: (error) => {
+      console.error('Login Failed', error);
+      setErrorMsg('Google Login failed.');
+    }
+  });
 
   const checkOwnerOrAgent = async (userEmail, userPassword, user) => {
     try {
@@ -184,6 +289,25 @@ const Login = () => {
               {loading ? <div className="spinner"></div> : 'SIGN IN'}
             </button>
           </form>
+
+          <div className="auth-divider">
+            <span>OR</span>
+          </div>
+
+          <button 
+            type="button" 
+            className="auth-social-btn" 
+            onClick={() => loginWithGoogle()}
+            disabled={loading}
+          >
+            <svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">
+              <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+              <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+              <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+              <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+            </svg>
+            Continue with Google
+          </button>
 
           <div className="auth-prompt">
             Don't have an account? <Link to="/signup">Sign Up</Link>
