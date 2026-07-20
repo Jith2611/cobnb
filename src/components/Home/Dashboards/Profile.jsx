@@ -66,19 +66,19 @@ const Profile = () => {
     <div 
       className="tier-card"
       style={{
-        background: active ? 'rgba(255, 255, 255, 0.08)' : 'rgba(17, 17, 17, 0.4)',
+        background: active ? 'var(--color-bg-secondary)' : 'var(--color-bg-main)',
         backdropFilter: 'blur(10px)',
-        border: `1px solid ${active ? color : 'rgba(255,255,255,0.05)'}`,
+        border: `1px solid ${active ? color : 'var(--color-border)'}`,
         borderRadius: '12px', 
         padding: '24px',
         position: 'relative', 
         display: 'flex',
         flexDirection: 'column',
-        boxShadow: active ? `0 4px 20px ${color}15` : 'none',
+        boxShadow: active ? `0 4px 20px ${color}15` : 'var(--shadow-sm)',
         transition: 'all 0.2s ease',
     }}>
       {active && (
-        <div style={{ position: 'absolute', top: '12px', right: '12px', backgroundColor: color, color: '#000', fontSize: '9px', fontWeight: '800', padding: '3px 8px', borderRadius: '4px', textTransform: 'uppercase', letterSpacing: '1px' }}>
+        <div style={{ position: 'absolute', top: '12px', right: '12px', backgroundColor: color, color: '#fff', fontSize: '9px', fontWeight: '800', padding: '3px 8px', borderRadius: '4px', textTransform: 'uppercase', letterSpacing: '1px' }}>
           Current
         </div>
       )}
@@ -87,9 +87,9 @@ const Profile = () => {
         <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: `${color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <Shield size={16} fill={color} color={color} />
         </div>
-        <h4 style={{ margin: 0, fontFamily: 'var(--font-heading)', fontSize: '18px', color: '#fff' }}>{title}</h4>
+        <h4 style={{ margin: 0, fontFamily: 'var(--font-heading)', fontSize: '18px', color: 'var(--color-text-main)' }}>{title}</h4>
       </div>
-      <p style={{ margin: '0 0 20px 0', fontSize: '9px', color: 'rgba(255,255,255,0.5)', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+      <p style={{ margin: '0 0 20px 0', fontSize: '9px', color: 'var(--color-text-muted)', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
         {requirements}
       </p>
 
@@ -99,7 +99,7 @@ const Profile = () => {
             <div style={{ marginTop: '3px' }}>
               <Check size={12} color={color} />
             </div>
-            <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.85)', lineHeight: '1.4' }}>{perk.text}</span>
+            <span style={{ fontSize: '12px', color: 'var(--color-text-main)', lineHeight: '1.4' }}>{perk.text}</span>
           </div>
         ))}
       </div>
@@ -147,37 +147,37 @@ const Profile = () => {
   return (
     <div style={{ minHeight: '100vh', position: 'relative', overflowX: 'hidden' }}>
       {/* Background Image & Overlay */}
-      <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundImage: `url(${import.meta.env.BASE_URL}images/bg3.jpg)`, backgroundSize: 'cover', backgroundPosition: 'center', zIndex: -2 }}></div>
-      <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)', zIndex: -1 }}></div>
+      <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundImage: `url(${import.meta.env.BASE_URL}images/bg3.jpg)`, backgroundSize: 'cover', backgroundPosition: 'center', zIndex: -2, opacity: 0.3 }}></div>
+      <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'var(--color-bg-main)', opacity: 0.85, backdropFilter: 'blur(8px)', zIndex: -1 }}></div>
 
       <div style={{ maxWidth: '900px', margin: '0 auto', padding: '100px 24px 60px', position: 'relative', zIndex: 1 }}>
         
         {loading && !userDetails ? (
           <div style={{ height: '40vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <div className="spinner-dark" style={{ borderTopColor: 'var(--color-accent)', border: '2px solid rgba(255,255,255,0.05)', borderRadius: '50%', width: '32px', height: '32px', animation: 'spin 1s linear infinite' }}></div>
+            <div className="spinner-dark" style={{ borderTopColor: 'var(--color-accent)', border: '2px solid var(--color-border)', borderRadius: '50%', width: '32px', height: '32px', animation: 'spin 1s linear infinite' }}></div>
           </div>
         ) : userDetails ? (
           <div className="fade-in-up">
             
             {/* Header section (Professional layout) */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '32px', background: 'rgba(255, 255, 255, 0.03)', backdropFilter: 'blur(20px)', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '16px', padding: '32px', marginBottom: '32px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '32px', background: 'var(--color-bg-secondary)', backdropFilter: 'blur(20px)', border: '1px solid var(--color-border)', borderRadius: '16px', padding: '32px', marginBottom: '32px' }}>
               <div style={{ 
                 width: '80px', height: '80px', borderRadius: '50%', flexShrink: 0,
                 backgroundImage: `url(${userDetails?.Profile_Pic || 'https://via.placeholder.com/150'})`,
                 backgroundSize: 'cover', backgroundPosition: 'center',
-                border: '2px solid rgba(255,255,255,0.1)'
+                border: '2px solid var(--color-border)'
               }}></div>
               
               <div style={{ flex: 1 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div>
-                    <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: '24px', color: '#fff', margin: '0 0 4px 0', fontWeight: '500' }}>
+                    <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: '24px', color: 'var(--color-text-main)', margin: '0 0 4px 0', fontWeight: '500' }}>
                       {userDetails?.Guest_Name?.display_value || 'Esteemed Guest'}
                     </h2>
-                    <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '13px', margin: '0 0 12px 0' }}>
+                    <p style={{ color: 'var(--color-text-muted)', fontSize: '13px', margin: '0 0 12px 0' }}>
                       {userDetails?.member_email}
                     </p>
-                    <div style={{ display: 'inline-block', backgroundColor: 'rgba(255,255,255,0.05)', padding: '4px 12px', borderRadius: '4px', fontSize: '10px', color: 'rgba(255,255,255,0.6)', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    <div style={{ display: 'inline-block', backgroundColor: 'var(--color-bg-main)', border: '1px solid var(--color-border)', padding: '4px 12px', borderRadius: '4px', fontSize: '10px', color: 'var(--color-text-muted)', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                       Last Login: {userDetails?.Last_Login_Date || 'N/A'}
                     </div>
                   </div>
@@ -187,7 +187,7 @@ const Profile = () => {
                     className="logout-btn"
                     style={{
                       display: 'flex', alignItems: 'center', gap: '8px',
-                      backgroundColor: 'transparent', color: 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.1)',
+                      backgroundColor: 'transparent', color: 'var(--color-text-muted)', border: '1px solid var(--color-border)',
                       padding: '8px 16px', borderRadius: '6px', cursor: 'pointer',
                       fontSize: '11px', fontWeight: '600', letterSpacing: '1px', textTransform: 'uppercase',
                       transition: 'all 0.2s ease'
@@ -200,21 +200,21 @@ const Profile = () => {
             </div>
 
             {/* Stats Strip */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1px', background: 'rgba(255,255,255,0.08)', borderRadius: '12px', overflow: 'hidden', marginBottom: '40px' }}>
-              <div style={{ background: 'rgba(10,10,12,0.95)', padding: '24px', textAlign: 'center' }}>
-                <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>Reward Points</div>
-                <div style={{ fontFamily: 'var(--font-heading)', fontSize: '24px', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1px', background: 'var(--color-border)', borderRadius: '12px', overflow: 'hidden', marginBottom: '40px' }}>
+              <div style={{ background: 'var(--color-bg-secondary)', padding: '24px', textAlign: 'center' }}>
+                <div style={{ fontSize: '10px', color: 'var(--color-text-muted)', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>Reward Points</div>
+                <div style={{ fontFamily: 'var(--font-heading)', fontSize: '24px', color: 'var(--color-text-main)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
                   <Award size={18} color="var(--color-accent)" /> {currentPoints}
                 </div>
               </div>
-              <div style={{ background: 'rgba(10,10,12,0.95)', padding: '24px', textAlign: 'center' }}>
-                <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>Current Tier</div>
+              <div style={{ background: 'var(--color-bg-secondary)', padding: '24px', textAlign: 'center' }}>
+                <div style={{ fontSize: '10px', color: 'var(--color-text-muted)', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>Current Tier</div>
                 <div style={{ fontFamily: 'var(--font-heading)', fontSize: '24px', color: 'var(--color-accent)' }}>{userDetails?.member_level || 'Silver'}</div>
               </div>
-              <div className="promo-hover" style={{ background: 'rgba(10,10,12,0.95)', padding: '24px', textAlign: 'center', position: 'relative', cursor: 'pointer' }} onClick={() => copyToClipboard(userDetails?.Discount_Code)}>
-                <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>Promo Code</div>
-                <div style={{ fontFamily: 'var(--font-heading)', fontSize: '24px', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                  {userDetails?.Discount_Code || 'N/A'} <Copy size={16} color="rgba(255,255,255,0.3)" className="copy-icon" />
+              <div className="promo-hover" style={{ background: 'var(--color-bg-secondary)', padding: '24px', textAlign: 'center', position: 'relative', cursor: 'pointer' }} onClick={() => copyToClipboard(userDetails?.Discount_Code)}>
+                <div style={{ fontSize: '10px', color: 'var(--color-text-muted)', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>Promo Code</div>
+                <div style={{ fontFamily: 'var(--font-heading)', fontSize: '24px', color: 'var(--color-text-main)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                  {userDetails?.Discount_Code || 'N/A'} <Copy size={16} color="var(--color-text-muted)" className="copy-icon" />
                 </div>
                 {copied && <div style={{ position: 'absolute', bottom: '8px', left: '0', right: '0', textAlign: 'center', fontSize: '9px', color: 'var(--color-accent)', fontWeight: '700', letterSpacing: '1px', textTransform: 'uppercase' }}>Copied!</div>}
               </div>
@@ -222,11 +222,11 @@ const Profile = () => {
 
             {/* Exclusive Tier Entitlements - Grid Layout */}
             <div style={{ marginBottom: '40px' }}>
-              <div style={{ marginBottom: '24px', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '16px' }}>
-                <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '20px', color: '#fff', margin: '0 0 4px 0', fontWeight: '500' }}>
+              <div style={{ marginBottom: '24px', borderBottom: '1px solid var(--color-border)', paddingBottom: '16px' }}>
+                <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '20px', color: 'var(--color-text-main)', margin: '0 0 4px 0', fontWeight: '500' }}>
                   Tier Entitlements
                 </h3>
-                <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '12px', margin: 0 }}>View the benefits of your current and upcoming loyalty tiers.</p>
+                <p style={{ color: 'var(--color-text-muted)', fontSize: '12px', margin: 0 }}>View the benefits of your current and upcoming loyalty tiers.</p>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px' }}>
@@ -253,7 +253,7 @@ const Profile = () => {
           100% { transform: rotate(360deg); }
         }
         .tier-card:hover {
-          border-color: rgba(255,255,255,0.2) !important;
+          border-color: var(--color-accent) !important;
           transform: translateY(-2px);
         }
         .promo-hover:hover .copy-icon {
@@ -261,9 +261,9 @@ const Profile = () => {
           opacity: 1 !important;
         }
         .logout-btn:hover {
-          color: #fff !important;
-          border-color: rgba(255,255,255,0.3) !important;
-          background: rgba(255,255,255,0.05) !important;
+          color: var(--color-text-main) !important;
+          border-color: var(--color-text-main) !important;
+          background: var(--color-bg-main) !important;
         }
       `}} />
     </div>
