@@ -12,6 +12,19 @@ const MyBookings = () => {
   const [finalTrips, setFinalTrips] = useState([]);
   const [loading, setLoading] = useState(false);
 
+  const parseDateOnly = dateString => {
+    if (!dateString) return null;
+    try {
+      const normalized = dateString.indexOf('T') === -1 && /^\d{4}-\d{2}-\d{2}$/.test(dateString)
+        ? `${dateString}T00:00:00`
+        : dateString;
+      const d = new Date(normalized);
+      if (isNaN(d.getTime())) return null;
+      d.setHours(0, 0, 0, 0);
+      return d;
+    } catch (e) { return null; }
+  };
+
   useEffect(() => {
     fetchUserDetails();
   }, []);
@@ -25,6 +38,12 @@ const MyBookings = () => {
       const obj1 = myTrips.find(obj => obj.ID === id);
       const obj2 = myTrips1.find(obj => obj.ID === id);
       return obj1 ? obj1 : obj2;
+    });
+
+    mergedArray.sort((a, b) => {
+      const dateA = parseDateOnly(a?.Check_in_Date)?.getTime() || 0;
+      const dateB = parseDateOnly(b?.Check_in_Date)?.getTime() || 0;
+      return dateB - dateA; // Latest to oldest (descending)
     });
 
     setFinalTrips(mergedArray);
@@ -79,18 +98,7 @@ const MyBookings = () => {
     }
   };
 
-  const parseDateOnly = dateString => {
-    if (!dateString) return null;
-    try {
-      const normalized = dateString.indexOf('T') === -1 && /^\d{4}-\d{2}-\d{2}$/.test(dateString)
-        ? `${dateString}T00:00:00`
-        : dateString;
-      const d = new Date(normalized);
-      if (isNaN(d.getTime())) return null;
-      d.setHours(0, 0, 0, 0);
-      return d;
-    } catch (e) { return null; }
-  };
+
 
   const todayDateOnly = () => {
     const t = new Date();
@@ -157,6 +165,10 @@ const MyBookings = () => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           {finalTrips.map(item => {
             const status = getBookingStatus(item);
+            const defaultUrl = 'https://static.wixstatic.com/media/201a1b_b218982b63c849f98d3165723606121d~mv2_d_6796_3863_s_4_2.png/v1/crop/x_65,y_0,w_6731,h_3863/fill/w_422,h_238,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/logo%20with%20TM.png';
+            const imageUrl = item?.['Building_Name.Mobile_App_Image']?.url || item?.['Building_Name.Mobile_App_Image'] || item?.image || defaultUrl;
+            const isDefault = imageUrl === defaultUrl;
+            
             return (
               <div 
                 key={item.ID || Math.random()} 
@@ -176,8 +188,8 @@ const MyBookings = () => {
                 {/* Image Section */}
                 <div style={{ 
                   width: '140px', 
-                  backgroundImage: `url(${item?.image || 'https://static.wixstatic.com/media/201a1b_b218982b63c849f98d3165723606121d~mv2_d_6796_3863_s_4_2.png/v1/crop/x_65,y_0,w_6731,h_3863/fill/w_422,h_238,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/logo%20with%20TM.png'})`,
-                  backgroundSize: 'contain', backgroundRepeat: 'no-repeat', backgroundPosition: 'center', backgroundColor: '#fff',
+                  backgroundImage: `url(${imageUrl})`,
+                  backgroundSize: isDefault ? 'contain' : 'cover', backgroundRepeat: 'no-repeat', backgroundPosition: 'center', backgroundColor: '#fff',
                   display: 'none',
                 }} className="trip-image-desktop"></div>
                 

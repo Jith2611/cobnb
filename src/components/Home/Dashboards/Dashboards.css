@@ -393,6 +393,16 @@
   opacity: 0.8;
 }
 
+.hero-section.cleaner-hero {
+  height: 180px;
+  min-height: 180px;
+  margin-top: 80px;
+}
+
+.membership-card.cleaner {
+  top: 40px;
+}
+
 /* Global Mobile Responsiveness */
 @media (max-width: 768px) {
   /* Hero Section */
@@ -428,7 +438,7 @@
   
   /* Floating Passes (Guest/Owner) */
   .membership-card {
-    top: auto;
+    top: auto !important;
     bottom: 24px;
     right: 50%;
     transform: translateX(50%);

@@ -18,7 +18,7 @@ const ForgotPassword = () => {
       setErrorMsg('Please enter your email');
       return;
     }
-    
+
     setErrorMsg('');
     setLoading(true);
 
@@ -60,13 +60,13 @@ const ForgotPassword = () => {
     try {
       const refreshToken = await getData('refreshToken');
       const generatedOtp = Math.floor(Math.random() * 900000) + 100000;
-      
+
       const params = {
         data: {
           OTP: generatedOtp,
         }
       };
-      
+
       const res = await axios.patch(
         `/zoho-api/api/v2/brandontan18/housekeeping-system/report/loyalty_members_Report/${ID}`,
         params,
@@ -76,7 +76,7 @@ const ForgotPassword = () => {
           },
         }
       );
-      
+
       if (res?.data?.code === 3000) {
         // Success
         navigate('/verify-otp', { state: { data: { ID }, type: 'forgot' } });
@@ -98,14 +98,14 @@ const ForgotPassword = () => {
           <p>Experience the luxury of professional Airbnb management.</p>
         </div>
       </div>
-      
+
       <div className="auth-form-panel">
         <div className="auth-form-container">
-          <img src={`${import.meta.env.BASE_URL}images/logo.png`} alt="COBNB Logo" className="auth-logo" />
-          
+          <img src={`${import.meta.env.BASE_URL}images/cobnblogonew.png`} alt="COBNB Logo" className="auth-logo" />
+
           <h2 className="auth-title">Reset Password</h2>
           <p className="auth-subtitle">We will send an OTP to your registered email</p>
-          
+
           {errorMsg && <div className="auth-error">{errorMsg}</div>}
 
           <form onSubmit={handleForgotPassword} className="auth-form">

@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useSelector } from 'react-redux';
-import { TrendingUp, Home, Users, Calendar, DollarSign, RefreshCw } from 'lucide-react';
+import { TrendingUp, Home, Users, Calendar, DollarSign, RefreshCw, Clock, Target } from 'lucide-react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   RadialBarChart, RadialBar, Legend
@@ -16,13 +16,14 @@ const RevenueDashboard = () => {
   const [isColiving, setIsColiving] = useState(false);
 
   const now = new Date();
-  const monthNames = ['JANUARY','FEBRUARY','MARCH','APRIL','MAY','JUNE','JULY','AUGUST','SEPTEMBER','OCTOBER','NOVEMBER','DECEMBER'];
+  const monthNames = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
   const [currentMonth] = useState(monthNames[now.getMonth()]);
   const [currentMonthNo] = useState(String(now.getMonth() + 1).padStart(2, '0'));
   const [currentYear] = useState(now.getFullYear());
 
   const [monthlyRevenueData, setMonthlyRevenueData] = useState(0);
   const [nightOccupied, setNightOccupied] = useState(0);
+  const [lastUpdatedTime, setLastUpdatedTime] = useState('');
   const [bookings, setBookings] = useState([]);
   const [graphLabels, setGraphLabels] = useState([]);
   const [graphDataset, setGraphDataset] = useState([]);
@@ -102,11 +103,22 @@ const RevenueDashboard = () => {
 
       const revUrl = `/zoho-api/api/v2/brandontan18/housekeeping-system/report/Master_Statement_Report?Listing_Number.${emailField}=${encodeURIComponent(user?.member_email)}&Month_Year=${dateRange}`;
       const revRes = await zohoAxios.get(revUrl);
+      console.log(revRes, 'res')
       if (revRes.data.code === 3000) {
         const payout = revRes.data.data.reduce((s, i) => s + (parseFloat(i.Owner_Payout) || 0), 0);
         const nights = revRes.data.data.reduce((s, i) => s + (parseFloat(i.Total_No_of_Nights) || 0), 0);
         setMonthlyRevenueData(Math.round(payout * 100) / 100);
         setNightOccupied(nights);
+
+        let latestTime = '';
+        revRes.data.data.forEach(item => {
+          if (item.Modified_Time) {
+            if (!latestTime || new Date(item.Modified_Time) > new Date(latestTime)) {
+              latestTime = item.Modified_Time;
+            }
+          }
+        });
+        if (latestTime) setLastUpdatedTime(latestTime);
       }
 
       const bookUrl = `/zoho-api/api/v2/brandontan18/housekeeping-system/report/Property_Reservation_System_Report?Listing_Name.${emailField}=${encodeURIComponent(user?.member_email)}&Month_Year=${dateRange}`;
@@ -136,7 +148,7 @@ const RevenueDashboard = () => {
             grouped[item.Month_Year] = (grouped[item.Month_Year] || 0) + (Number(item.Owner_Payout) || 0);
           });
         const sortedKeys = Object.keys(grouped).sort().reverse().slice(0, 6).reverse();
-        const shortMonths = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        const shortMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
         setGraphLabels(sortedKeys.map(k => shortMonths[parseInt(k.split('-')[1]) - 1]));
         setGraphDataset(sortedKeys.map(k => Math.round(grouped[k])));
       }
@@ -178,9 +190,12 @@ const RevenueDashboard = () => {
       {/* Stat Cards */}
       <div className="rd-stats-grid">
         <StatCard icon={<DollarSign size={22} />} label="Total Revenue" value={`RM ${totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} sub={colivingRevenue > 0 ? `STR: RM ${monthlyRevenueData.toFixed(2)}  Co-living: RM ${colivingRevenue.toFixed(2)}` : null} accent="#C5A880" />
-        <StatCard icon={<TrendingUp size={22} />} label="Revenue Progress" value={`${revenueProgress}%`} sub={`Target: RM ${fullMonthlyRevenue.toLocaleString()}`} accent="#132135" progress={revenueProgress} />
+        <StatCard icon={<Target size={22} />} label="Revenue Progress" value={`${revenueProgress}%`} sub={`Target: RM ${fullMonthlyRevenue.toLocaleString()}`} accent="#132135" progress={revenueProgress} />
         <StatCard icon={<Calendar size={22} />} label="Occupancy Rate" value={`${occupancyRate}%`} sub={`${nightOccupied} / ${fullNight} nights`} accent="#10B981" progress={occupancyRate} />
         <StatCard icon={<Home size={22} />} label="Properties" value={property.length} sub="Under management" accent="#6366F1" />
+        {lastUpdatedTime && (
+          <StatCard icon={<Clock size={22} />} label="Last Updated" value={lastUpdatedTime.split(' ')[0]} sub={`Time: ${lastUpdatedTime.split(' ')[1] || ''}`} accent="#F59E0B" />
+        )}
       </div>
 
       {/* Charts Row */}
@@ -193,7 +208,7 @@ const RevenueDashboard = () => {
               <LineChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
                 <XAxis dataKey="month" tick={{ fontSize: 12, fill: 'var(--color-text-muted)' }} />
-                <YAxis tick={{ fontSize: 11, fill: 'var(--color-text-muted)' }} tickFormatter={v => `RM ${(v/1000).toFixed(0)}k`} />
+                <YAxis tick={{ fontSize: 11, fill: 'var(--color-text-muted)' }} tickFormatter={v => `RM ${(v / 1000).toFixed(0)}k`} />
                 <Tooltip formatter={(v) => [`RM ${v.toLocaleString()}`, 'Revenue']} contentStyle={{ backgroundColor: 'var(--color-secondary)', border: '1px solid var(--color-border)', borderRadius: '8px' }} />
                 <Line type="monotone" dataKey="revenue" stroke="#C5A880" strokeWidth={2.5} dot={{ fill: '#C5A880', r: 4 }} activeDot={{ r: 6 }} />
               </LineChart>
@@ -207,20 +222,20 @@ const RevenueDashboard = () => {
         <div className="rd-card rd-radial-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <h3 className="rd-card-title" style={{ width: '100%', marginBottom: 0 }}>Performance Overview</h3>
           <ResponsiveContainer width="100%" height={240}>
-            <RadialBarChart 
-              cx="50%" cy="45%" 
-              innerRadius="40%" outerRadius="100%" 
-              barSize={16} data={radialData} 
+            <RadialBarChart
+              cx="50%" cy="45%"
+              innerRadius="40%" outerRadius="100%"
+              barSize={16} data={radialData}
               startAngle={180} endAngle={-180}
             >
               <RadialBar minAngle={15} background dataKey="value" cornerRadius={8} />
-              <Legend 
-                iconSize={10} layout="horizontal" verticalAlign="bottom" align="center" 
+              <Legend
+                iconSize={10} layout="horizontal" verticalAlign="bottom" align="center"
                 wrapperStyle={{ paddingBottom: '10px' }}
-                formatter={(v) => <span style={{ fontSize: '13px', color: 'var(--color-text-main)', fontWeight: '600', marginLeft: '4px' }}>{v}</span>} 
+                formatter={(v) => <span style={{ fontSize: '13px', color: 'var(--color-text-main)', fontWeight: '600', marginLeft: '4px' }}>{v}</span>}
               />
-              <Tooltip 
-                formatter={(v) => [`${v}%`]} 
+              <Tooltip
+                formatter={(v) => [`${v}%`]}
                 contentStyle={{ backgroundColor: 'var(--color-secondary)', borderRadius: '8px', border: '1px solid var(--color-border)', padding: '8px' }}
               />
             </RadialBarChart>

@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
-import { 
-  Home, 
-  Calendar, 
-  User, 
-  LogOut, 
-  Menu, 
-  X, 
+import {
+  Home,
+  Calendar,
+  User,
+  LogOut,
+  Menu,
+  X,
   Search,
   Moon,
   Sun,
@@ -37,10 +37,10 @@ const DashboardLayout = ({ children }) => {
 
   // Read role from Redux
   const isOwner = useSelector((state) => state.userInfo?.isOwner);
-  
+
   const navItems = [
     { path: '/welcome', icon: Home, label: 'Home' },
-    { path: '/search', icon: Search, label: 'Direct Booking' },
+    { path: '/search', icon: Search, label: 'Book A Stay' },
     { path: '/my-bookings', icon: Calendar, label: 'My Bookings' },
     ...(isOwner === 1 ? [{ path: '/revenue-dashboard', icon: BarChart2, label: 'Revenue Dashboard' }] : []),
     ...(isOwner === 2 ? [{ path: '/agent-revenue-dashboard', icon: BarChart2, label: 'Agent Revenue' }] : []),
@@ -76,13 +76,13 @@ const DashboardLayout = ({ children }) => {
       <header className={`top-navbar ${scrolled || !isHome ? 'navbar-solid' : 'navbar-transparent'}`}>
         <div className="navbar-content">
           <div className="navbar-logo" onClick={() => navigate('/welcome')}>
-            <img 
-              src="https://static.wixstatic.com/media/201a1b_b218982b63c849f98d3165723606121d~mv2_d_6796_3863_s_4_2.png/v1/crop/x_65,y_0,w_6731,h_3863/fill/w_422,h_238,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/logo%20with%20TM.png" 
-              alt="COBNB Logo" 
+            <img
+              src={`${import.meta.env.BASE_URL}images/cobnblogonew.png`}
+              alt="COBNB Logo"
               style={{ height: '36px', objectFit: 'contain', cursor: 'pointer' }}
             />
           </div>
-          
+
           {/* Desktop Nav */}
           <nav className="desktop-nav">
             {navItems.map((item) => {
@@ -106,7 +106,7 @@ const DashboardLayout = ({ children }) => {
             <button className="nav-link logout-link" onClick={handleLogout}>
               Logout
             </button>
-            <button 
+            <button
               onClick={toggleTheme}
               style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px', borderRadius: '50%', border: '1px solid currentColor', background: 'transparent', cursor: 'pointer', color: 'inherit' }}
             >
@@ -124,7 +124,7 @@ const DashboardLayout = ({ children }) => {
       {/* Mobile Nav Drawer */}
       <div className={`mobile-nav-backdrop ${mobileMenuOpen ? 'open' : ''}`} onClick={() => setMobileMenuOpen(false)} />
       <div className={`mobile-nav-drawer ${mobileMenuOpen ? 'open' : ''}`}>
-        <button 
+        <button
           onClick={() => setMobileMenuOpen(false)}
           style={{ position: 'absolute', top: '24px', right: '24px', background: 'transparent', border: 'none', color: 'var(--color-primary)', cursor: 'pointer' }}
         >
@@ -136,13 +136,13 @@ const DashboardLayout = ({ children }) => {
             return (
               <button
                 key={item.path}
-                onClick={() => { 
+                onClick={() => {
                   if (item.label === 'COBNB') {
                     window.open('https://www.cobnb.com.my/', '_blank');
                   } else {
-                    navigate(item.path); 
+                    navigate(item.path);
                   }
-                  setMobileMenuOpen(false); 
+                  setMobileMenuOpen(false);
                 }}
                 className={`mobile-nav-link ${isActive ? 'active' : ''}`}
               >

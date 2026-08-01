@@ -15,7 +15,7 @@ const AgentDashboard = () => {
   const [property, setProperty] = useState([]);
 
   const now = new Date();
-  const monthNames = ['JANUARY','FEBRUARY','MARCH','APRIL','MAY','JUNE','JULY','AUGUST','SEPTEMBER','OCTOBER','NOVEMBER','DECEMBER'];
+  const monthNames = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
   const [currentMonth] = useState(monthNames[now.getMonth()]);
   const [currentMonthNo] = useState(String(now.getMonth() + 1).padStart(2, '0'));
   const [currentYear] = useState(now.getFullYear());
@@ -83,7 +83,7 @@ const AgentDashboard = () => {
     try {
       const isDemo = user?.member_email === 'demo1.cobnb@gmail.com';
       const emailField = isDemo ? 'Agent_Demo_Email' : 'Agent_Email';
-      
+
       const months = [];
       let d = new Date();
       for (let i = 0; i < 12; i++) {
@@ -103,7 +103,7 @@ const AgentDashboard = () => {
             grouped[item.Month_Year] = (grouped[item.Month_Year] || 0) + parseFloat(item.Agent_Profit_Share || 0);
           });
         const sortedKeys = Object.keys(grouped).sort().reverse().slice(0, 6).reverse();
-        const shortMonths = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        const shortMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
         setGraphLabels(sortedKeys.map(k => shortMonths[parseInt(k.split('-')[1]) - 1]));
         setGraphDataset(sortedKeys.map(k => Math.round(grouped[k])));
       }
@@ -124,7 +124,7 @@ const AgentDashboard = () => {
       {/* Header */}
       <div className="rd-header">
         <div>
-          <h2 className="rd-title" style={{color: '#C5A880'}}>{currentMonth} {currentYear} — Agent Dashboard</h2>
+          <h2 className="rd-title" style={{ color: '#C5A880' }}>{currentMonth} {currentYear} — Agent Dashboard</h2>
           <p className="rd-subtitle">{property.length} propert{property.length !== 1 ? 'ies' : 'y'} assigned to you</p>
         </div>
         <button className="rd-refresh" onClick={() => loadAll(userDetails)} disabled={loading}>
@@ -135,7 +135,7 @@ const AgentDashboard = () => {
 
       {loading && (
         <div className="rd-loading-bar">
-          <div className="rd-loading-fill" style={{background: '#C5A880'}}></div>
+          <div className="rd-loading-fill" style={{ background: '#C5A880' }}></div>
         </div>
       )}
 
@@ -166,7 +166,7 @@ const AgentDashboard = () => {
         </div>
 
         {/* Radial Chart */}
-        <div className="rd-card rd-radial-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        {/* <div className="rd-card rd-radial-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <h3 className="rd-card-title" style={{ width: '100%', marginBottom: 0 }}>Agent Performance</h3>
           <ResponsiveContainer width="100%" height={240}>
             <RadialBarChart 
@@ -187,7 +187,7 @@ const AgentDashboard = () => {
               />
             </RadialBarChart>
           </ResponsiveContainer>
-        </div>
+        </div> */}
       </div>
 
     </div>

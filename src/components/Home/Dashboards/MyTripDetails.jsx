@@ -242,7 +242,7 @@ const MyTripDetails = () => {
         
         {/* Booking Details Grid */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '32px' }}>
-          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          <div style={{ display: 'none', gap: '12px', alignItems: 'center' }}>
             <div style={{ padding: '10px', backgroundColor: 'var(--color-bg-main)', borderRadius: '8px' }}><Building size={18} color="var(--color-accent)" /></div>
             <div>
               <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', textTransform: 'uppercase', fontWeight: '600' }}>Unit No.</div>
