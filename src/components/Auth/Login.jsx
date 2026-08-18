@@ -190,6 +190,16 @@ const Login = () => {
       return;
     }
 
+    // Static login for finance owner dashboard
+    if (email === 'finance@gbdland.com' && password === 'Password@123') {
+      saveUserData({ ID: 'finance-owner' });
+      await storeData('ID', 'finance-owner');
+      await storeData('userDetails', JSON.stringify({ member_email: 'finance@gbdland.com', name: 'Finance' }));
+      setIsOwner(1);
+      navigate('/welcome');
+      return;
+    }
+
     setErrorMsg('');
     setLoading(true);
 
