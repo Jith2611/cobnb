@@ -35,7 +35,7 @@ const UpdatePassword = () => {
       setErrorMsg('Password must be at least 6 characters');
       return;
     }
-    
+
     setErrorMsg('');
     setLoading(true);
 
@@ -85,14 +85,14 @@ const UpdatePassword = () => {
           <p>Experience the luxury of professional Airbnb management.</p>
         </div>
       </div>
-      
+
       <div className="auth-form-panel">
         <div className="auth-form-container">
-          <img src={`${import.meta.env.BASE_URL}images/logo.png`} alt="COBNB Logo" className="auth-logo" />
-          
+          <img src={`${import.meta.env.BASE_URL}images/cobnblogonew.png`} alt="COBNB Logo" className="auth-logo" />
+
           <h2 className="auth-title">Create New Password</h2>
           <p className="auth-subtitle">Please enter your new password below</p>
-          
+
           {errorMsg && <div className="auth-error">{errorMsg}</div>}
           {successMsg && (
             <div className="auth-error" style={{ backgroundColor: '#F6FFED', color: '#52C41A', borderColor: '#B7EB8F' }}>
@@ -111,8 +111,8 @@ const UpdatePassword = () => {
                 className="auth-input"
                 required
               />
-              <button 
-                type="button" 
+              <button
+                type="button"
                 className="password-toggle"
                 onClick={() => setShowPassword(!showPassword)}
               >
@@ -130,8 +130,8 @@ const UpdatePassword = () => {
                 className="auth-input"
                 required
               />
-              <button 
-                type="button" 
+              <button
+                type="button"
                 className="password-toggle"
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
               >
@@ -143,7 +143,7 @@ const UpdatePassword = () => {
               {loading ? <div className="spinner"></div> : 'UPDATE PASSWORD'}
             </button>
           </form>
-          
+
           <div className="auth-prompt">
             <Link to="/login">Back to Log In</Link>
           </div>

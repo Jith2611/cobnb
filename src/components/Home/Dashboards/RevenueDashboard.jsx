@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useSelector } from 'react-redux';
-import { TrendingUp, Home, Users, Calendar, DollarSign, RefreshCw } from 'lucide-react';
+import { TrendingUp, Home, Users, Calendar, DollarSign, RefreshCw, Clock, Target } from 'lucide-react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   RadialBarChart, RadialBar, Legend
@@ -16,14 +16,20 @@ const RevenueDashboard = () => {
   const [isColiving, setIsColiving] = useState(false);
 
   const now = new Date();
-  const monthNames = ['JANUARY','FEBRUARY','MARCH','APRIL','MAY','JUNE','JULY','AUGUST','SEPTEMBER','OCTOBER','NOVEMBER','DECEMBER'];
+  const monthNames = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
   const [currentMonth] = useState(monthNames[now.getMonth()]);
   const [currentMonthNo] = useState(String(now.getMonth() + 1).padStart(2, '0'));
   const [currentYear] = useState(now.getFullYear());
 
+  const [dashboardDate, setDashboardDate] = useState(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`);
+
   const [monthlyRevenueData, setMonthlyRevenueData] = useState(0);
   const [nightOccupied, setNightOccupied] = useState(0);
+  const [lastUpdatedTime, setLastUpdatedTime] = useState('');
   const [bookings, setBookings] = useState([]);
+  const [paginationFrom, setPaginationFrom] = useState(1);
+  const [hasMoreBookings, setHasMoreBookings] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [graphLabels, setGraphLabels] = useState([]);
   const [graphDataset, setGraphDataset] = useState([]);
 
@@ -94,25 +100,76 @@ const RevenueDashboard = () => {
     } catch (e) { console.error('Coliving Error', e); }
   };
 
-  const getSTRData = async (user) => {
+  const getSTRData = async (user, date = dashboardDate) => {
     try {
       const isDemo = user?.member_email === 'demo.cobnb@gmail.com';
       const emailField = isDemo ? 'Sales_Demo_Email' : 'Owner_Email';
-      const dateRange = `${currentYear}-${currentMonthNo}`;
+      const dateRange = date;
 
       const revUrl = `/zoho-api/api/v2/brandontan18/housekeeping-system/report/Master_Statement_Report?Listing_Number.${emailField}=${encodeURIComponent(user?.member_email)}&Month_Year=${dateRange}`;
       const revRes = await zohoAxios.get(revUrl);
+      console.log(revRes, 'res')
       if (revRes.data.code === 3000) {
         const payout = revRes.data.data.reduce((s, i) => s + (parseFloat(i.Owner_Payout) || 0), 0);
         const nights = revRes.data.data.reduce((s, i) => s + (parseFloat(i.Total_No_of_Nights) || 0), 0);
         setMonthlyRevenueData(Math.round(payout * 100) / 100);
         setNightOccupied(nights);
+
+        let latestTime = '';
+        revRes.data.data.forEach(item => {
+          if (item.Modified_Time) {
+            if (!latestTime || new Date(item.Modified_Time) > new Date(latestTime)) {
+              latestTime = item.Modified_Time;
+            }
+          }
+        });
+        if (latestTime) setLastUpdatedTime(latestTime);
       }
 
-      const bookUrl = `/zoho-api/api/v2/brandontan18/housekeeping-system/report/Property_Reservation_System_Report?Listing_Name.${emailField}=${encodeURIComponent(user?.member_email)}&Month_Year=${dateRange}`;
-      const bookRes = await zohoAxios.get(bookUrl);
-      if (bookRes.data.code === 3000) setBookings(bookRes.data.data);
+      if (user?.member_email === 'finance@gbdland.com') {
+        const limit = 200;
+        const bookUrl = `/zoho-api/api/v2/brandontan18/housekeeping-system/report/Skylon_Bookings?Month_Year=${dateRange}&from=1&limit=${limit}`;
+        const bookRes = await zohoAxios.get(bookUrl);
+        
+        if (bookRes?.data?.code === 3000 && bookRes.data.data) {
+          setBookings(bookRes.data.data);
+          setPaginationFrom(1);
+          setHasMoreBookings(bookRes.data.data.length === limit);
+        } else {
+          setBookings([]);
+          setHasMoreBookings(false);
+        }
+      } else {
+        const bookUrl = `/zoho-api/api/v2/brandontan18/housekeeping-system/report/Property_Reservation_System_Report?Listing_Name.${emailField}=${encodeURIComponent(user?.member_email)}&Month_Year=${dateRange}`;
+        const bookRes = await zohoAxios.get(bookUrl);
+        if (bookRes?.data?.code === 3000 && bookRes.data.data) {
+          setBookings(bookRes.data.data);
+        } else {
+          setBookings([]);
+        }
+      }
     } catch (e) { console.error('STR Error', e); }
+  };
+
+  const loadMoreBookings = async () => {
+    setLoadingMore(true);
+    try {
+      const nextFrom = paginationFrom + 200;
+      const limit = 200;
+      const bookUrl = `/zoho-api/api/v2/brandontan18/housekeeping-system/report/Skylon_Bookings?Month_Year=${dashboardDate}&from=${nextFrom}&limit=${limit}`;
+      const bookRes = await zohoAxios.get(bookUrl);
+      
+      if (bookRes?.data?.code === 3000 && bookRes.data.data) {
+        setBookings(prev => [...prev, ...bookRes.data.data]);
+        setPaginationFrom(nextFrom);
+        setHasMoreBookings(bookRes.data.data.length === limit);
+      } else {
+        setHasMoreBookings(false);
+      }
+    } catch (e) {
+      console.error('Load more error', e);
+    }
+    setLoadingMore(false);
   };
 
   const getLast6Months = async (user) => {
@@ -136,7 +193,7 @@ const RevenueDashboard = () => {
             grouped[item.Month_Year] = (grouped[item.Month_Year] || 0) + (Number(item.Owner_Payout) || 0);
           });
         const sortedKeys = Object.keys(grouped).sort().reverse().slice(0, 6).reverse();
-        const shortMonths = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        const shortMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
         setGraphLabels(sortedKeys.map(k => shortMonths[parseInt(k.split('-')[1]) - 1]));
         setGraphDataset(sortedKeys.map(k => Math.round(grouped[k])));
       }
@@ -154,6 +211,75 @@ const RevenueDashboard = () => {
     { name: 'Revenue', value: revenueProgress, fill: '#C5A880' },
     { name: 'Occupancy', value: occupancyRate, fill: '#132135' },
   ];
+
+  const exportToCSV = async () => {
+    setLoading(true);
+    try {
+      let allData = [];
+      let from = 1;
+      let limit = 200;
+      let hasMore = true;
+
+      while (hasMore) {
+        const bookUrl = `/zoho-api/api/v2/brandontan18/housekeeping-system/report/Skylon_Bookings?Month_Year=${dashboardDate}&from=${from}&limit=${limit}`;
+        const bookRes = await zohoAxios.get(bookUrl);
+        
+        if (bookRes?.data?.code === 3000 && bookRes.data.data && bookRes.data.data.length > 0) {
+          allData = allData.concat(bookRes.data.data);
+          if (bookRes.data.data.length < limit) {
+            hasMore = false;
+          } else {
+            from += limit;
+          }
+        } else {
+          hasMore = false;
+        }
+      }
+
+      if (allData.length === 0) {
+        setLoading(false);
+        return;
+      }
+
+      const headers = [
+        "Booking_Ref_No", "Booking_Platform", "Listing_Name", "Building_Name", 
+        "Check_in_Date", "check_out", "Nights", "Accomodation_Fare", 
+        "Cleaning_Fare", "Platform_Fees", "Tourism_Tax", "Internal_Platform_Commission", 
+        /* "Host_Payout", */ "Owner_Payout_New", "Reservation_Status"
+      ];
+
+      let csvContent = headers.join(",") + "\n";
+
+      allData.forEach((row) => {
+        let rowArray = headers.map(header => {
+          let val = row[header];
+          if (val && typeof val === 'object') {
+            val = val.display_value || '';
+          }
+          val = val !== undefined && val !== null ? String(val) : '';
+          val = val.replace(/"/g, '""').replace(/\n/g, " ");
+          return `"${val}"`;
+        });
+        csvContent += rowArray.join(",") + "\n";
+      });
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement("a");
+      if (link.download !== undefined) {
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", `Skylon_Bookings_${dashboardDate}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }
+    } catch(e) {
+      console.error(e);
+    }
+    setLoading(false);
+  };
 
   return (
     <div className="rd-page">
@@ -178,9 +304,12 @@ const RevenueDashboard = () => {
       {/* Stat Cards */}
       <div className="rd-stats-grid">
         <StatCard icon={<DollarSign size={22} />} label="Total Revenue" value={`RM ${totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} sub={colivingRevenue > 0 ? `STR: RM ${monthlyRevenueData.toFixed(2)}  Co-living: RM ${colivingRevenue.toFixed(2)}` : null} accent="#C5A880" />
-        <StatCard icon={<TrendingUp size={22} />} label="Revenue Progress" value={`${revenueProgress}%`} sub={`Target: RM ${fullMonthlyRevenue.toLocaleString()}`} accent="#132135" progress={revenueProgress} />
+        <StatCard icon={<Target size={22} />} label="Revenue Progress" value={`${revenueProgress}%`} sub={`Target: RM ${fullMonthlyRevenue.toLocaleString()}`} accent="#132135" progress={revenueProgress} />
         <StatCard icon={<Calendar size={22} />} label="Occupancy Rate" value={`${occupancyRate}%`} sub={`${nightOccupied} / ${fullNight} nights`} accent="#10B981" progress={occupancyRate} />
         <StatCard icon={<Home size={22} />} label="Properties" value={property.length} sub="Under management" accent="#6366F1" />
+        {lastUpdatedTime && (
+          <StatCard icon={<Clock size={22} />} label="Last Updated" value={lastUpdatedTime.split(' ')[0]} sub={`Time: ${lastUpdatedTime.split(' ')[1] || ''}`} accent="#F59E0B" />
+        )}
       </div>
 
       {/* Charts Row */}
@@ -193,7 +322,7 @@ const RevenueDashboard = () => {
               <LineChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
                 <XAxis dataKey="month" tick={{ fontSize: 12, fill: 'var(--color-text-muted)' }} />
-                <YAxis tick={{ fontSize: 11, fill: 'var(--color-text-muted)' }} tickFormatter={v => `RM ${(v/1000).toFixed(0)}k`} />
+                <YAxis tick={{ fontSize: 11, fill: 'var(--color-text-muted)' }} tickFormatter={v => `RM ${(v / 1000).toFixed(0)}k`} />
                 <Tooltip formatter={(v) => [`RM ${v.toLocaleString()}`, 'Revenue']} contentStyle={{ backgroundColor: 'var(--color-secondary)', border: '1px solid var(--color-border)', borderRadius: '8px' }} />
                 <Line type="monotone" dataKey="revenue" stroke="#C5A880" strokeWidth={2.5} dot={{ fill: '#C5A880', r: 4 }} activeDot={{ r: 6 }} />
               </LineChart>
@@ -207,20 +336,20 @@ const RevenueDashboard = () => {
         <div className="rd-card rd-radial-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <h3 className="rd-card-title" style={{ width: '100%', marginBottom: 0 }}>Performance Overview</h3>
           <ResponsiveContainer width="100%" height={240}>
-            <RadialBarChart 
-              cx="50%" cy="45%" 
-              innerRadius="40%" outerRadius="100%" 
-              barSize={16} data={radialData} 
+            <RadialBarChart
+              cx="50%" cy="45%"
+              innerRadius="40%" outerRadius="100%"
+              barSize={16} data={radialData}
               startAngle={180} endAngle={-180}
             >
               <RadialBar minAngle={15} background dataKey="value" cornerRadius={8} />
-              <Legend 
-                iconSize={10} layout="horizontal" verticalAlign="bottom" align="center" 
+              <Legend
+                iconSize={10} layout="horizontal" verticalAlign="bottom" align="center"
                 wrapperStyle={{ paddingBottom: '10px' }}
-                formatter={(v) => <span style={{ fontSize: '13px', color: 'var(--color-text-main)', fontWeight: '600', marginLeft: '4px' }}>{v}</span>} 
+                formatter={(v) => <span style={{ fontSize: '13px', color: 'var(--color-text-main)', fontWeight: '600', marginLeft: '4px' }}>{v}</span>}
               />
-              <Tooltip 
-                formatter={(v) => [`${v}%`]} 
+              <Tooltip
+                formatter={(v) => [`${v}%`]}
                 contentStyle={{ backgroundColor: 'var(--color-secondary)', borderRadius: '8px', border: '1px solid var(--color-border)', padding: '8px' }}
               />
             </RadialBarChart>
@@ -230,36 +359,125 @@ const RevenueDashboard = () => {
 
       {/* Bookings Table */}
       <div className="rd-card" style={{ marginBottom: '24px' }}>
-        <h3 className="rd-card-title">This Month's Bookings <span className="rd-count">{bookings.length}</span></h3>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <h3 className="rd-card-title" style={{ marginBottom: 0 }}>
+            {userDetails?.member_email === 'finance@gbdland.com' ? 'Skylon Bookings' : "This Month's Bookings"}
+            <span className="rd-count">{bookings.length}</span>
+          </h3>
+
+          {userDetails?.member_email === 'finance@gbdland.com' && (
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: 'var(--color-bg-secondary)', padding: '6px 12px', borderRadius: '4px' }}>
+                <Calendar size={16} color="var(--color-text-muted)" />
+                <input
+                  type="month"
+                  value={dashboardDate}
+                  onChange={(e) => {
+                    setDashboardDate(e.target.value);
+                    getSTRData(userDetails, e.target.value);
+                  }}
+                  style={{ background: 'transparent', border: 'none', color: 'var(--color-primary)', outline: 'none', fontFamily: 'inherit', fontSize: '13px', cursor: 'pointer' }}
+                />
+              </div>
+              <button
+                className="hover-lift"
+                onClick={exportToCSV}
+                disabled={loading || bookings.length === 0}
+                style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: '#10B981', color: '#fff', padding: '6px 12px', borderRadius: '4px', fontSize: '13px', fontWeight: '600', border: 'none', cursor: 'pointer', opacity: (loading || bookings.length === 0) ? 0.5 : 1 }}
+              >
+                Export CSV
+              </button>
+            </div>
+          )}
+        </div>
+
         {bookings.length > 0 ? (
           <div className="rd-table-wrap">
-            <table className="rd-table">
-              <thead>
-                <tr>
-                  <th>Platform</th>
-                  <th>Unit</th>
-                  <th>Check-In</th>
-                  <th>Check-Out</th>
-                  <th>Payout</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {bookings.map((item, idx) => (
-                  <tr key={idx}>
-                    <td><span className="rd-platform">{item?.Booking_Platform || '-'}</span></td>
-                    <td>{item?.Listing_Name?.display_value || '-'}</td>
-                    <td>{item?.Check_in_Date || '-'}</td>
-                    <td>{item?.check_out || '-'}</td>
-                    <td><strong>RM {item?.Owner_Payout_New || '0'}</strong></td>
-                    <td><span className={`rd-status ${item?.Reservation_Status === 'Confirmed' ? 'confirmed' : 'other'}`}>{item?.Reservation_Status || '-'}</span></td>
+            {userDetails?.member_email === 'finance@gbdland.com' ? (
+              <table className="rd-table" style={{ whiteSpace: 'nowrap' }}>
+                <thead>
+                  <tr>
+                    <th>Ref No</th>
+                    <th>Platform</th>
+                    <th>Unit</th>
+                    <th>Building</th>
+                    <th>Check-In</th>
+                    <th>Check-Out</th>
+                    <th>Nights</th>
+                    <th>Acc Fare</th>
+                    <th>Clean Fare</th>
+                    <th>Plat Fees</th>
+                    <th>Tour Tax</th>
+                    <th>Internal Comm</th>
+                    {/* <th>Host Payout</th> */}
+                    <th>Owner Payout</th>
+                    <th>Status</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {bookings.map((item, idx) => (
+                    <tr key={idx}>
+                      <td>{item?.Booking_Ref_No || '-'}</td>
+                      <td><span className="rd-platform">{item?.Booking_Platform || '-'}</span></td>
+                      <td>{item?.Listing_Name?.display_value || '-'}</td>
+                      <td>{item?.Building_Name?.display_value || '-'}</td>
+                      <td>{item?.Check_in_Date || '-'}</td>
+                      <td>{item?.check_out || '-'}</td>
+                      <td>{item?.Nights || '-'}</td>
+                      <td>{item?.Accomodation_Fare || '-'}</td>
+                      <td>{item?.Cleaning_Fare || '-'}</td>
+                      <td>{item?.Platform_Fees || '-'}</td>
+                      <td>{item?.Tourism_Tax || '-'}</td>
+                      <td>{item?.Internal_Platform_Commission || '-'}</td>
+                      {/* <td>{item?.Host_Payout || '-'}</td> */}
+                      <td><strong>RM {item?.Owner_Payout_New || '0'}</strong></td>
+                      <td><span className={`rd-status ${item?.Reservation_Status === 'Confirmed' || item?.Reservation_Status === 'Active' ? 'confirmed' : 'other'}`}>{item?.Reservation_Status || '-'}</span></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <table className="rd-table">
+                <thead>
+                  <tr>
+                    <th>Platform</th>
+                    <th>Unit</th>
+                    <th>Check-In</th>
+                    <th>Check-Out</th>
+                    <th>Payout</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {bookings.map((item, idx) => (
+                    <tr key={idx}>
+                      <td><span className="rd-platform">{item?.Booking_Platform || '-'}</span></td>
+                      <td>{item?.Listing_Name?.display_value || '-'}</td>
+                      <td>{item?.Check_in_Date || '-'}</td>
+                      <td>{item?.check_out || '-'}</td>
+                      <td><strong>RM {item?.Owner_Payout_New || item?.Owner_Payout || '0'}</strong></td>
+                      <td><span className={`rd-status ${item?.Reservation_Status === 'Confirmed' || item?.Reservation_Status === 'Active' ? 'confirmed' : 'other'}`}>{item?.Reservation_Status || '-'}</span></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         ) : (
           <div className="rd-empty">No bookings this month</div>
+        )}
+
+        {hasMoreBookings && (
+          <div style={{ padding: '16px', textAlign: 'center', borderTop: '1px solid var(--color-border)' }}>
+            <button 
+              className="hover-lift" 
+              onClick={loadMoreBookings} 
+              disabled={loadingMore} 
+              style={{ padding: '8px 24px', backgroundColor: 'var(--color-bg-secondary)', color: 'var(--color-primary)', border: '1px solid var(--color-border)', borderRadius: '4px', cursor: 'pointer', fontWeight: '600' }}
+            >
+              {loadingMore ? 'Loading...' : 'Load More'}
+            </button>
+          </div>
         )}
       </div>
 

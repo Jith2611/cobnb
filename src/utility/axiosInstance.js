@@ -47,6 +47,14 @@ const zohoAxios = axios.create();
 // ── REQUEST: always fetch fresh token first ───────────────────────────────────
 zohoAxios.interceptors.request.use(
   async (config) => {
+    // In production, you might need to strip this if pointing directly to a different backend/gateway, 
+    // but locally we need to keep it so the Vite proxy can intercept and avoid CORS.
+    if (import.meta.env.PROD && config.url && config.url.startsWith('/zoho-api')) {
+      // In case production setup actually requires stripping (e.g. going directly to Zoho 
+      // where production domain is whitelisted, or another proxy setup)
+      config.url = config.url.replace(/^\/zoho-api/, '');
+    }
+
     const token = await fetchFreshToken();
     if (token) {
       config.headers['Authorization'] = `Zoho-oauthtoken ${token}`;
