@@ -7,6 +7,7 @@ const FinanceSkylonBookings = () => {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [selectedCountry, setSelectedCountry] = useState('All');
   
   // Default to current year and month (e.g., "2026-09")
   const today = new Date();
@@ -41,13 +42,19 @@ const FinanceSkylonBookings = () => {
     }
   };
 
+  const uniqueCountries = [...new Set(bookings.map(b => b.Country).filter(Boolean))].sort();
+  const filteredBookings = selectedCountry === 'All' 
+    ? bookings 
+    : bookings.filter(b => b.Country === selectedCountry);
+
   const exportToCSV = () => {
-    if (bookings.length === 0) return;
+    if (filteredBookings.length === 0) return;
 
     // Define columns to export based on API response structure
     const headers = [
       "Booking_Ref_No",
       "Booking_Platform",
+      "Country",
       "Listing_Name",
       "Building_Name",
       "Check_in_Date",
@@ -66,7 +73,7 @@ const FinanceSkylonBookings = () => {
     let csvContent = "data:text/csv;charset=utf-8,";
     csvContent += headers.join(",") + "\n";
 
-    bookings.forEach((row) => {
+    filteredBookings.forEach((row) => {
       let rowArray = headers.map(header => {
         let val = row[header];
         if (val && typeof val === 'object') {
@@ -97,13 +104,13 @@ const FinanceSkylonBookings = () => {
         </div>
         
         <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: 'var(--color-bg-secondary)', padding: '8px 16px', borderRadius: 'var(--radius-sm)' }}>
-            <Calendar size={18} color="var(--color-text-muted)" />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#e0e7ff', border: '1px solid #c7d2fe', padding: '8px 16px', borderRadius: 'var(--radius-sm)' }}>
+            <Calendar size={18} color="#4338ca" />
             <input 
               type="month" 
               value={monthYear} 
               onChange={(e) => setMonthYear(e.target.value)}
-              style={{ background: 'transparent', border: 'none', color: 'var(--color-primary)', outline: 'none', fontFamily: 'inherit', fontSize: '14px', cursor: 'pointer' }}
+              style={{ background: 'transparent', border: 'none', color: '#4338ca', outline: 'none', fontFamily: 'inherit', fontSize: '14px', cursor: 'pointer', fontWeight: '600' }}
             />
           </div>
 
@@ -119,22 +126,49 @@ const FinanceSkylonBookings = () => {
           <button 
             className="hover-lift" 
             onClick={exportToCSV} 
-            disabled={loading || bookings.length === 0} 
-            style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: 'var(--color-accent)', color: '#fff', padding: '8px 16px', borderRadius: 'var(--radius-sm)', fontSize: '14px', fontWeight: '600', opacity: (loading || bookings.length === 0) ? 0.5 : 1 }}
+            disabled={loading || filteredBookings.length === 0} 
+            style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: 'var(--color-accent)', color: '#fff', padding: '8px 16px', borderRadius: 'var(--radius-sm)', fontSize: '14px', fontWeight: '600', opacity: (loading || filteredBookings.length === 0) ? 0.5 : 1 }}
           >
             <Download size={16} /> Export CSV
           </button>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#dcfce7', border: '1px solid #bbf7d0', padding: '8px 16px', borderRadius: 'var(--radius-sm)' }}>
+            <select
+              value={selectedCountry}
+              onChange={(e) => setSelectedCountry(e.target.value)}
+              style={{ background: 'transparent', border: 'none', color: '#15803d', outline: 'none', fontFamily: 'inherit', fontSize: '14px', cursor: 'pointer', fontWeight: '600' }}
+            >
+              <option value="All">All Countries</option>
+              {uniqueCountries.map(country => (
+                <option key={country} value={country}>{country}</option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 
       {errorMsg && <div style={{ color: '#ef4444', marginBottom: '16px', fontSize: '14px' }}>{errorMsg}</div>}
 
-      <div style={{ overflowX: 'auto' }}>
+      {loading && (
+        <div style={{ textAlign: 'center', padding: '12px', backgroundColor: 'rgba(99, 102, 241, 0.1)', borderRadius: '8px', marginBottom: '16px', border: '1px solid rgba(99, 102, 241, 0.2)' }}>
+          <div style={{ display: 'inline-block', width: '18px', height: '18px', border: '2px solid var(--color-primary)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'rd-spin 1s linear infinite', verticalAlign: 'middle', marginRight: '8px' }}></div>
+          <span style={{ color: 'var(--color-primary)', fontSize: '14px', fontWeight: '600', verticalAlign: 'middle' }}>Loading data...</span>
+          <style>{`
+            @keyframes rd-spin {
+              to { transform: rotate(360deg); }
+            }
+          `}</style>
+        </div>
+      )}
+
+      <div style={{ overflowX: 'auto', opacity: loading ? 0.5 : 1, pointerEvents: loading ? 'none' : 'auto', transition: 'opacity 0.2s' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px' }}>
           <thead>
             <tr style={{ backgroundColor: 'var(--color-bg-secondary)', color: 'var(--color-text-muted)' }}>
               <th style={{ padding: '12px 16px', fontWeight: '600' }}>Ref No</th>
               <th style={{ padding: '12px 16px', fontWeight: '600' }}>Platform</th>
+              <th style={{ padding: '12px 16px', fontWeight: '600' }}>Month</th>
+              <th style={{ padding: '12px 16px', fontWeight: '600' }}>Country</th>
               <th style={{ padding: '12px 16px', fontWeight: '600' }}>Listing</th>
               <th style={{ padding: '12px 16px', fontWeight: '600' }}>Check-in</th>
               <th style={{ padding: '12px 16px', fontWeight: '600' }}>Check-out</th>
@@ -145,17 +179,13 @@ const FinanceSkylonBookings = () => {
             </tr>
           </thead>
           <tbody>
-            {loading ? (
-              <tr>
-                <td colSpan="9" style={{ textAlign: 'center', padding: '32px' }}>
-                  <div className="spinner-dark" style={{ margin: '0 auto' }}></div>
-                </td>
-              </tr>
-            ) : bookings.length > 0 ? (
-              bookings.map((b, i) => (
+            {filteredBookings.length > 0 ? (
+              filteredBookings.map((b, i) => (
                 <tr key={b.ID || i} style={{ borderBottom: '1px solid var(--color-border)', backgroundColor: i % 2 === 0 ? 'transparent' : 'rgba(0,0,0,0.02)' }}>
                   <td style={{ padding: '12px 16px', color: 'var(--color-primary)' }}>{b.Booking_Ref_No}</td>
                   <td style={{ padding: '12px 16px', color: 'var(--color-primary)' }}>{b.Booking_Platform}</td>
+                  <td style={{ padding: '12px 16px', color: '#4338ca', fontWeight: '600', backgroundColor: 'rgba(67, 56, 202, 0.05)' }}>{b.Month_Year || monthYear}</td>
+                  <td style={{ padding: '12px 16px', color: '#15803d', fontWeight: '600', backgroundColor: 'rgba(21, 128, 61, 0.05)' }}>{b.Country || '-'}</td>
                   <td style={{ padding: '12px 16px', color: 'var(--color-primary)' }}>
                     <div style={{ maxWidth: '200px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={b.Listing_Name?.display_value}>
                       {b.Listing_Name?.display_value}
@@ -175,7 +205,7 @@ const FinanceSkylonBookings = () => {
               ))
             ) : (
               <tr>
-                <td colSpan="9" style={{ textAlign: 'center', padding: '32px', color: 'var(--color-text-muted)' }}>
+                <td colSpan="11" style={{ textAlign: 'center', padding: '32px', color: 'var(--color-text-muted)' }}>
                   No bookings found for {monthYear}.
                 </td>
               </tr>

@@ -1,0 +1,109 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'CloudFront Distribution for COBNB with API Proxies'
+
+Resources:
+  RewriteFunction:
+    Type: AWS::CloudFront::Function
+    Properties:
+      Name: COBNB-API-Rewrite
+      AutoPublish: true
+      FunctionConfig:
+        Comment: "Rewrites paths for Zoho and Catalyst"
+        Runtime: cloudfront-js-1.0
+      FunctionCode: |
+        function handler(event) {
+            var request = event.request;
+            var uri = request.uri;
+            
+            // Remove /zoho-api prefix
+            if (uri.startsWith('/zoho-api/')) {
+                request.uri = uri.replace('/zoho-api', '');
+            }
+            // Mappings for Catalyst token
+            else if (uri === '/catalyst-token' || uri.startsWith('/catalyst-token/')) {
+                request.uri = '/server/zohoTokenManager_COBNB';
+            }
+            
+            return request;
+        }
+
+  CloudFrontDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        Comment: "COBNB Web App with API proxy"
+        DefaultRootObject: index.html
+        
+        # Handle React Router fallback (404/403 -> index.html)
+        CustomErrorResponses:
+          - ErrorCode: 404
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+          - ErrorCode: 403
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+            
+        Origins:
+          - Id: S3Origin
+            DomainName: member.cobnb.com.my.s3-website-ap-southeast-1.amazonaws.com
+            CustomOriginConfig:
+              OriginProtocolPolicy: http-only
+              HTTPPort: 80
+              HTTPSPort: 443
+          
+          - Id: ZohoCreator
+            DomainName: creator.zoho.com
+            CustomOriginConfig:
+              OriginProtocolPolicy: https-only
+              HTTPPort: 80
+              HTTPSPort: 443
+              
+          - Id: Catalyst
+            DomainName: cobnb-909749525.catalystserverless.com
+            CustomOriginConfig:
+              OriginProtocolPolicy: https-only
+              HTTPPort: 80
+              HTTPSPort: 443
+
+        DefaultCacheBehavior:
+          TargetOriginId: S3Origin
+          ViewerProtocolPolicy: redirect-to-https
+          Compress: true
+          # Managed Policy: CachingOptimized
+          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
+
+        CacheBehaviors:
+          - PathPattern: /zoho-api/*
+            TargetOriginId: ZohoCreator
+            ViewerProtocolPolicy: https-only
+            AllowedMethods: [GET, HEAD, OPTIONS, PUT, POST, PATCH, DELETE]
+            # Managed Policy: CachingDisabled (API shouldn't be cached)
+            CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad
+            # Managed Policy: AllViewer (Pass all headers, query strings, cookies)
+            OriginRequestPolicyId: 216adef6-5c7f-47e4-b360-d42087f89ea7
+            FunctionAssociations:
+              - EventType: viewer-request
+                FunctionARN: !GetAtt RewriteFunction.FunctionMetadata.FunctionARN
+
+          - PathPattern: /server/*
+            TargetOriginId: Catalyst
+            ViewerProtocolPolicy: https-only
+            AllowedMethods: [GET, HEAD, OPTIONS, PUT, POST, PATCH, DELETE]
+            CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad
+            OriginRequestPolicyId: 216adef6-5c7f-47e4-b360-d42087f89ea7
+
+          - PathPattern: /catalyst-token*
+            TargetOriginId: Catalyst
+            ViewerProtocolPolicy: https-only
+            AllowedMethods: [GET, HEAD, OPTIONS, PUT, POST, PATCH, DELETE]
+            CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad
+            OriginRequestPolicyId: 216adef6-5c7f-47e4-b360-d42087f89ea7
+            FunctionAssociations:
+              - EventType: viewer-request
+                FunctionARN: !GetAtt RewriteFunction.FunctionMetadata.FunctionARN
+
+Outputs:
+  CloudFrontDomain:
+    Description: "The domain name of the CloudFront distribution"
+    Value: !GetAtt CloudFrontDistribution.DomainName

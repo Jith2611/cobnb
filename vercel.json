@@ -13,6 +13,14 @@
       "destination": "https://cobnb-909749525.catalystserverless.com/server/$1"
     },
     {
+      "source": "/catalyst-token",
+      "destination": "https://cobnb-909749525.catalystserverless.com/server/zohoTokenManager_COBNB"
+    },
+    {
+      "source": "/catalyst-token/(.*)",
+      "destination": "https://cobnb-909749525.catalystserverless.com/server/zohoTokenManager_COBNB"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

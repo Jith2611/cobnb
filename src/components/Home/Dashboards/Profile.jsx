@@ -63,26 +63,26 @@ const Profile = () => {
   const currentPoints = Number(userDetails?.Points) || 0;
 
   const TierCard = ({ title, color, requirements, active, perks }) => (
-    <div 
+    <div
       className="tier-card"
       style={{
         background: active ? 'var(--color-bg-secondary)' : 'var(--color-bg-main)',
         backdropFilter: 'blur(10px)',
         border: `1px solid ${active ? color : 'var(--color-border)'}`,
-        borderRadius: '12px', 
+        borderRadius: '12px',
         padding: '24px',
-        position: 'relative', 
+        position: 'relative',
         display: 'flex',
         flexDirection: 'column',
         boxShadow: active ? `0 4px 20px ${color}15` : 'var(--shadow-sm)',
         transition: 'all 0.2s ease',
-    }}>
+      }}>
       {active && (
         <div style={{ position: 'absolute', top: '12px', right: '12px', backgroundColor: color, color: '#fff', fontSize: '9px', fontWeight: '800', padding: '3px 8px', borderRadius: '4px', textTransform: 'uppercase', letterSpacing: '1px' }}>
           Current
         </div>
       )}
-      
+
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
         <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: `${color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <Shield size={16} fill={color} color={color} />
@@ -110,7 +110,7 @@ const Profile = () => {
     {
       title: "SILVER",
       color: "#94A3B8",
-      requirements: "MIN 3 STAYS | RM 2,000 SPEND",
+      requirements: "MIN 3 STAYS | RM 2,000 Annual SPEND",
       level: 'Silver',
       perks: [
         { text: '5% off all time stay' },
@@ -121,7 +121,7 @@ const Profile = () => {
     {
       title: "GOLD",
       color: "#D4AF37",
-      requirements: "MIN 7 STAYS | RM 4,000 SPEND",
+      requirements: "MIN 7 STAYS | RM 4,000 Annual SPEND",
       level: 'Gold',
       perks: [
         { text: '10% for next stay' },
@@ -133,12 +133,12 @@ const Profile = () => {
     {
       title: "PLATINUM",
       color: "#C5A880", // Golden luxury accent
-      requirements: "MIN 15 STAYS | RM 8,000 SPEND",
+      requirements: "MIN 15 STAYS | RM 8,000 Annual SPEND",
       level: 'Platinum',
       perks: [
-        { text: '15% for next stay' },
-        { text: '15% off BOOK and Stay on Birthday Month.' },
-        { text: 'RM 100 Off (x3)' },
+        { text: '10% for next stay' },
+        { text: 'Exclusive invite to new property free stay on birthday month.' },
+        { text: '1:00 PM Late check-out (subject to availability)' },
         { text: 'Room Upgrade (subject to availability)' }
       ]
     }
@@ -151,23 +151,23 @@ const Profile = () => {
       <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'var(--color-bg-main)', opacity: 0.85, backdropFilter: 'blur(8px)', zIndex: -1 }}></div>
 
       <div style={{ maxWidth: '900px', margin: '0 auto', padding: '100px 24px 60px', position: 'relative', zIndex: 1 }}>
-        
+
         {loading && !userDetails ? (
           <div style={{ height: '40vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <div className="spinner-dark" style={{ borderTopColor: 'var(--color-accent)', border: '2px solid var(--color-border)', borderRadius: '50%', width: '32px', height: '32px', animation: 'spin 1s linear infinite' }}></div>
           </div>
         ) : userDetails ? (
           <div className="fade-in-up">
-            
+
             {/* Header section (Professional layout) */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '32px', background: 'var(--color-bg-secondary)', backdropFilter: 'blur(20px)', border: '1px solid var(--color-border)', borderRadius: '16px', padding: '32px', marginBottom: '32px' }}>
-              <div style={{ 
+              <div style={{
                 width: '80px', height: '80px', borderRadius: '50%', flexShrink: 0,
                 backgroundImage: `url(${userDetails?.Profile_Pic || 'https://via.placeholder.com/150'})`,
                 backgroundSize: 'cover', backgroundPosition: 'center',
                 border: '2px solid var(--color-border)'
               }}></div>
-              
+
               <div style={{ flex: 1 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div>
@@ -181,8 +181,8 @@ const Profile = () => {
                       Last Login: {userDetails?.Last_Login_Date || 'N/A'}
                     </div>
                   </div>
-                  
-                  <button 
+
+                  <button
                     onClick={logoutAction}
                     className="logout-btn"
                     style={{
@@ -247,7 +247,8 @@ const Profile = () => {
         ) : null}
       </div>
 
-      <style dangerouslySetInnerHTML={{__html: `
+      <style dangerouslySetInnerHTML={{
+        __html: `
         @keyframes spin {
           0% { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }

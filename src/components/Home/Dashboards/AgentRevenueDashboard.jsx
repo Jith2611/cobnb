@@ -69,6 +69,7 @@ const AgentDashboard = () => {
 
       const revUrl = `/zoho-api/api/v2/brandontan18/housekeeping-system/report/Master_Statement_Report?Listing_Number.${emailField}=${encodeURIComponent(user?.member_email)}&Month_Year=${dateRange}`;
       const revRes = await zohoAxios.get(revUrl);
+      console.log(revRes, 'STR Data')
       if (revRes.data.code === 3000) {
         let payout = 0;
         revRes.data.data.forEach(item => {
@@ -86,33 +87,59 @@ const AgentDashboard = () => {
 
       const months = [];
       let d = new Date();
-      for (let i = 0; i < 12; i++) {
-        const y = d.getFullYear();
-        const m = String(d.getMonth() + 1).padStart(2, '0');
+      // Get the last 6 months dynamically
+      for (let i = 5; i >= 1; i--) {
+        let pastDate = new Date(d.getFullYear(), d.getMonth() - i, 1);
+        const y = pastDate.getFullYear();
+        const m = String(pastDate.getMonth() + 1).padStart(2, '0');
         months.push(`${y}-${m}`);
-        d.setMonth(d.getMonth() - 1);
       }
 
-      const url = `/zoho-api/api/v2/brandontan18/housekeeping-system/report/Master_Statement_Report?Listing_Number.${emailField}=${encodeURIComponent(user?.member_email)}`;
-      const res = await zohoAxios.get(url);
-      if (res.data.code === 3000) {
-        const grouped = {};
-        res.data.data
-          .filter(item => months.includes(item.Month_Year))
-          .forEach(item => {
-            grouped[item.Month_Year] = (grouped[item.Month_Year] || 0) + parseFloat(item.Agent_Profit_Share || 0);
+      const promises = months.map(month => {
+        const url = `/zoho-api/api/v2/brandontan18/housekeeping-system/report/Master_Statement_Report?Listing_Number.${emailField}=${encodeURIComponent(user?.member_email)}&Month_Year=${month}`;
+        return zohoAxios.get(url).catch(err => {
+          console.warn(`Could not fetch data for ${month}`, err);
+          return null;
+        });
+      });
+
+      const responses = await Promise.all(promises);
+      const grouped = {};
+
+      responses.forEach((res, index) => {
+        const month = months[index];
+        grouped[month] = 0;
+        if (res?.data?.code === 3000) {
+          res.data.data.forEach(item => {
+            if (item.Month_Year === month) {
+              grouped[month] += parseFloat(item.Agent_Profit_Share || 0);
+            }
           });
-        const sortedKeys = Object.keys(grouped).sort().reverse().slice(0, 6).reverse();
-        const shortMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        setGraphLabels(sortedKeys.map(k => shortMonths[parseInt(k.split('-')[1]) - 1]));
-        setGraphDataset(sortedKeys.map(k => Math.round(grouped[k])));
-      }
+        }
+      });
+
+      const shortMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      setGraphLabels(months.map(k => shortMonths[parseInt(k.split('-')[1]) - 1]));
+      setGraphDataset(months.map(k => Math.round(grouped[k])));
+
     } catch (e) { console.error('History Error', e); }
   };
 
   const revenueProgress = Math.min(Math.round((monthlyRevenueData / fullMonthlyRevenue) * 100), 100);
 
-  const chartData = graphLabels.map((label, i) => ({ month: label, revenue: graphDataset[i] || 0 }));
+  const shortMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const currentMonthShort = shortMonths[now.getMonth()];
+
+  const chartData = graphLabels.map((label, i) => {
+    if (label === currentMonthShort) {
+      return { month: label, revenue: monthlyRevenueData };
+    }
+    return { month: label, revenue: graphDataset[i] || 0 };
+  });
+
+  if (graphLabels.length > 0 && !chartData.find(item => item.month === currentMonthShort)) {
+    chartData.push({ month: currentMonthShort, revenue: monthlyRevenueData });
+  }
 
   const radialData = [
     { name: 'Revenue', value: revenueProgress, fill: '#C5A880' },
