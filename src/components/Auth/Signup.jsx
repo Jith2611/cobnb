@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { User, Mail, Phone, Lock, Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import { saveUserData, setIsOwner } from '../../redux/actions';
 import { storeData } from '../../utility/LocalStorageService';
@@ -12,6 +12,10 @@ import './Login.css';
 
 const Signup = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const isSch = searchParams.get('sch') === 'true';
+
   const [step, setStep] = useState(0);
 
   const [firstName, setFirstName] = useState('');
@@ -152,7 +156,8 @@ const Signup = () => {
           },
           member_level: "Silver",
           Key: "google",
-          Verification_Status: "Verified"
+          Verification_Status: "Verified",
+          ...(isSch && { Sign_Up_from_Self_Check_In_Portal: "true" })
         }
       };
 
@@ -229,7 +234,8 @@ const Signup = () => {
           },
           member_level: "Silver",
           Key: password,
-          Verification_Status: "Pending"
+          Verification_Status: "Pending",
+          ...(isSch && { Sign_Up_from_Self_Check_In_Portal: "true" })
         }
       };
 

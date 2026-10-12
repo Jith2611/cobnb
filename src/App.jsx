@@ -20,6 +20,10 @@ import AgentRevenueDashboard from './components/Home/Dashboards/AgentRevenueDash
 import Booking from './components/Home/Dashboards/Booking';
 import Rewards from './components/Home/Dashboards/Rewards';
 import RewardDetails from './components/Home/Dashboards/RewardDetails';
+import OnlineBooking from './components/Home/Dashboards/OnlineBooking';
+import HotelAvailability from './components/Home/Dashboards/HotelAvailability';
+import HotelCheckout from './components/Home/Dashboards/HotelCheckout';
+import HotelBookings from './components/Home/Dashboards/HotelBookings';
 import './App.css';
 
 const ProtectedRoute = ({ children }) => {
@@ -68,6 +72,10 @@ function App() {
       <Route path="/rewards" element={<DashboardRoute><Rewards /></DashboardRoute>} />
       <Route path="/reward-details" element={<DashboardRoute><RewardDetails /></DashboardRoute>} />
       <Route path="/booking" element={<DashboardRoute><Booking /></DashboardRoute>} />
+      <Route path="/online-booking" element={<DashboardRoute><OnlineBooking /></DashboardRoute>} />
+      <Route path="/hotel-availability" element={<DashboardRoute><HotelAvailability /></DashboardRoute>} />
+      <Route path="/hotel-checkout" element={<DashboardRoute><HotelCheckout /></DashboardRoute>} />
+      <Route path="/hotel-bookings" element={<DashboardRoute><HotelBookings /></DashboardRoute>} />
     </Routes>
   );
 }

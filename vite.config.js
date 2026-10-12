@@ -10,6 +10,11 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/zoho-api/, ''),
       },
+      '/ezee-api': {
+        target: 'https://live.ipms247.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/ezee-api/, ''),
+      },
       '/zoho-accounts': {
         target: 'https://accounts.zoho.com',
         changeOrigin: true,

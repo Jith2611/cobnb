@@ -42,6 +42,7 @@ const DashboardLayout = ({ children }) => {
     { path: '/welcome', icon: Home, label: 'Home' },
     { path: '/search', icon: Search, label: 'Book A Stay' },
     { path: '/my-bookings', icon: Calendar, label: 'My Bookings' },
+    { path: '/online-booking', icon: Calendar, label: 'Online Booking' },
     ...(isOwner === 1 ? [{ path: '/revenue-dashboard', icon: BarChart2, label: 'Revenue Dashboard' }] : []),
     ...(isOwner === 2 ? [{ path: '/agent-revenue-dashboard', icon: BarChart2, label: 'Agent Revenue' }] : []),
     { path: '/rewards', icon: Gift, label: 'Cobnb Rewards' },

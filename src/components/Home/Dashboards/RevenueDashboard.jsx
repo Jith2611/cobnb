@@ -36,6 +36,7 @@ const RevenueDashboard = () => {
   const [colivingData, setColivingData] = useState([]);
   const [fullNight, setFullNight] = useState(0);
   const [fullMonthlyRevenue, setFullMonthlyRevenue] = useState(100000);
+  const [selectedCountry, setSelectedCountry] = useState('All');
 
   useEffect(() => {
     init();
@@ -130,7 +131,7 @@ const RevenueDashboard = () => {
         const limit = 200;
         const bookUrl = `/zoho-api/api/v2/brandontan18/housekeeping-system/report/Skylon_Bookings?Month_Year=${dateRange}&from=1&limit=${limit}`;
         const bookRes = await zohoAxios.get(bookUrl);
-        
+
         if (bookRes?.data?.code === 3000 && bookRes.data.data) {
           setBookings(bookRes.data.data);
           setPaginationFrom(1);
@@ -158,7 +159,7 @@ const RevenueDashboard = () => {
       const limit = 200;
       const bookUrl = `/zoho-api/api/v2/brandontan18/housekeeping-system/report/Skylon_Bookings?Month_Year=${dashboardDate}&from=${nextFrom}&limit=${limit}`;
       const bookRes = await zohoAxios.get(bookUrl);
-      
+
       if (bookRes?.data?.code === 3000 && bookRes.data.data) {
         setBookings(prev => [...prev, ...bookRes.data.data]);
         setPaginationFrom(nextFrom);
@@ -223,7 +224,7 @@ const RevenueDashboard = () => {
       while (hasMore) {
         const bookUrl = `/zoho-api/api/v2/brandontan18/housekeeping-system/report/Skylon_Bookings?Month_Year=${dashboardDate}&from=${from}&limit=${limit}`;
         const bookRes = await zohoAxios.get(bookUrl);
-        
+
         if (bookRes?.data?.code === 3000 && bookRes.data.data && bookRes.data.data.length > 0) {
           allData = allData.concat(bookRes.data.data);
           if (bookRes.data.data.length < limit) {
@@ -242,15 +243,17 @@ const RevenueDashboard = () => {
       }
 
       const headers = [
-        "Booking_Ref_No", "Booking_Platform", "Listing_Name", "Building_Name", 
-        "Check_in_Date", "check_out", "Nights", "Accomodation_Fare", 
-        "Cleaning_Fare", "Platform_Fees", "Tourism_Tax", "Internal_Platform_Commission", 
-        /* "Host_Payout", */ "Owner_Payout_New", "Reservation_Status"
+        "Booking_Ref_No", "Booking_Platform", "Country", "Listing_Name", "Building_Name",
+        "Check_in_Date", "check_out", "Nights", "Accomodation_Fare",
+        "Cleaning_Fare", "Platform_Fees", "Tourism_Tax", "Internal_Platform_Commission",
+        "Host_Payout", "Owner_Payout_New", "Reservation_Status"
       ];
 
       let csvContent = headers.join(",") + "\n";
+      
+      const dataToExport = selectedCountry === 'All' ? allData : allData.filter(b => b.Country === selectedCountry);
 
-      allData.forEach((row) => {
+      dataToExport.forEach((row) => {
         let rowArray = headers.map(header => {
           let val = row[header];
           if (val && typeof val === 'object') {
@@ -275,11 +278,16 @@ const RevenueDashboard = () => {
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
       }
-    } catch(e) {
+    } catch (e) {
       console.error(e);
     }
     setLoading(false);
   };
+
+  const uniqueCountries = [...new Set(bookings.map(b => b.Country).filter(Boolean))].sort();
+  const filteredBookings = selectedCountry === 'All' 
+    ? bookings 
+    : bookings.filter(b => b.Country === selectedCountry);
 
   return (
     <div className="rd-page">
@@ -362,43 +370,67 @@ const RevenueDashboard = () => {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
           <h3 className="rd-card-title" style={{ marginBottom: 0 }}>
             {userDetails?.member_email === 'finance@gbdland.com' ? 'Skylon Bookings' : "This Month's Bookings"}
-            <span className="rd-count">{bookings.length}</span>
+            <span className="rd-count">{filteredBookings.length}</span>
           </h3>
 
           {userDetails?.member_email === 'finance@gbdland.com' && (
             <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: 'var(--color-bg-secondary)', padding: '6px 12px', borderRadius: '4px' }}>
-                <Calendar size={16} color="var(--color-text-muted)" />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#e0e7ff', border: '1px solid #c7d2fe', padding: '6px 12px', borderRadius: '4px' }}>
+                <Calendar size={16} color="#4338ca" />
                 <input
                   type="month"
                   value={dashboardDate}
-                  onChange={(e) => {
+                  onChange={async (e) => {
                     setDashboardDate(e.target.value);
-                    getSTRData(userDetails, e.target.value);
+                    setLoading(true);
+                    await getSTRData(userDetails, e.target.value);
+                    setLoading(false);
                   }}
-                  style={{ background: 'transparent', border: 'none', color: 'var(--color-primary)', outline: 'none', fontFamily: 'inherit', fontSize: '13px', cursor: 'pointer' }}
+                  style={{ background: 'transparent', border: 'none', color: '#4338ca', outline: 'none', fontFamily: 'inherit', fontSize: '13px', cursor: 'pointer', fontWeight: '600' }}
                 />
               </div>
               <button
                 className="hover-lift"
                 onClick={exportToCSV}
-                disabled={loading || bookings.length === 0}
-                style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: '#10B981', color: '#fff', padding: '6px 12px', borderRadius: '4px', fontSize: '13px', fontWeight: '600', border: 'none', cursor: 'pointer', opacity: (loading || bookings.length === 0) ? 0.5 : 1 }}
+                disabled={loading || filteredBookings.length === 0}
+                style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: '#10B981', color: '#fff', padding: '6px 12px', borderRadius: '4px', fontSize: '13px', fontWeight: '600', border: 'none', cursor: 'pointer', opacity: (loading || filteredBookings.length === 0) ? 0.5 : 1 }}
               >
                 Export CSV
               </button>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: '#dcfce7', border: '1px solid #bbf7d0', padding: '6px 12px', borderRadius: '4px' }}>
+                <select
+                  value={selectedCountry}
+                  onChange={(e) => setSelectedCountry(e.target.value)}
+                  style={{ background: 'transparent', border: 'none', color: '#15803d', outline: 'none', fontFamily: 'inherit', fontSize: '13px', cursor: 'pointer', fontWeight: '600' }}
+                >
+                  <option value="All">All Countries</option>
+                  {uniqueCountries.map(country => (
+                    <option key={country} value={country}>{country}</option>
+                  ))}
+                </select>
+              </div>
             </div>
           )}
         </div>
 
-        {bookings.length > 0 ? (
-          <div className="rd-table-wrap">
+        {loading && (
+          <div style={{ textAlign: 'center', padding: '12px', backgroundColor: 'rgba(99, 102, 241, 0.1)', borderRadius: '8px', marginBottom: '16px', border: '1px solid rgba(99, 102, 241, 0.2)' }}>
+            <div className="rd-spin" style={{ display: 'inline-block', width: '18px', height: '18px', border: '2px solid var(--color-primary)', borderTopColor: 'transparent', borderRadius: '50%', verticalAlign: 'middle', marginRight: '8px' }}></div>
+            <span style={{ color: 'var(--color-primary)', fontSize: '14px', fontWeight: '600', verticalAlign: 'middle' }}>Loading data...</span>
+          </div>
+        )}
+
+        {filteredBookings.length > 0 ? (
+          <div className="rd-table-wrap" style={{ opacity: loading ? 0.5 : 1, pointerEvents: loading ? 'none' : 'auto', transition: 'opacity 0.2s' }}>
             {userDetails?.member_email === 'finance@gbdland.com' ? (
               <table className="rd-table" style={{ whiteSpace: 'nowrap' }}>
                 <thead>
                   <tr>
                     <th>Ref No</th>
                     <th>Platform</th>
+                    <th>Month</th>
+                    <th>Country</th>
                     <th>Unit</th>
                     <th>Building</th>
                     <th>Check-In</th>
@@ -409,16 +441,18 @@ const RevenueDashboard = () => {
                     <th>Plat Fees</th>
                     <th>Tour Tax</th>
                     <th>Internal Comm</th>
-                    {/* <th>Host Payout</th> */}
+                    <th>Host Payout</th>
                     <th>Owner Payout</th>
                     <th>Status</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {bookings.map((item, idx) => (
+                  {filteredBookings.map((item, idx) => (
                     <tr key={idx}>
                       <td>{item?.Booking_Ref_No || '-'}</td>
                       <td><span className="rd-platform">{item?.Booking_Platform || '-'}</span></td>
+                      <td style={{ color: '#4338ca', fontWeight: '600', backgroundColor: 'rgba(67, 56, 202, 0.05)' }}>{item?.Month_Year || dashboardDate}</td>
+                      <td style={{ color: '#15803d', fontWeight: '600', backgroundColor: 'rgba(21, 128, 61, 0.05)' }}>{item?.Country || '-'}</td>
                       <td>{item?.Listing_Name?.display_value || '-'}</td>
                       <td>{item?.Building_Name?.display_value || '-'}</td>
                       <td>{item?.Check_in_Date || '-'}</td>
@@ -429,7 +463,7 @@ const RevenueDashboard = () => {
                       <td>{item?.Platform_Fees || '-'}</td>
                       <td>{item?.Tourism_Tax || '-'}</td>
                       <td>{item?.Internal_Platform_Commission || '-'}</td>
-                      {/* <td>{item?.Host_Payout || '-'}</td> */}
+                      <td>RM {item?.Host_Payout || '-'}</td>
                       <td><strong>RM {item?.Owner_Payout_New || '0'}</strong></td>
                       <td><span className={`rd-status ${item?.Reservation_Status === 'Confirmed' || item?.Reservation_Status === 'Active' ? 'confirmed' : 'other'}`}>{item?.Reservation_Status || '-'}</span></td>
                     </tr>
@@ -449,7 +483,7 @@ const RevenueDashboard = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {bookings.map((item, idx) => (
+                  {filteredBookings.map((item, idx) => (
                     <tr key={idx}>
                       <td><span className="rd-platform">{item?.Booking_Platform || '-'}</span></td>
                       <td>{item?.Listing_Name?.display_value || '-'}</td>
@@ -469,10 +503,10 @@ const RevenueDashboard = () => {
 
         {hasMoreBookings && (
           <div style={{ padding: '16px', textAlign: 'center', borderTop: '1px solid var(--color-border)' }}>
-            <button 
-              className="hover-lift" 
-              onClick={loadMoreBookings} 
-              disabled={loadingMore} 
+            <button
+              className="hover-lift"
+              onClick={loadMoreBookings}
+              disabled={loadingMore}
               style={{ padding: '8px 24px', backgroundColor: 'var(--color-bg-secondary)', color: 'var(--color-primary)', border: '1px solid var(--color-border)', borderRadius: '4px', cursor: 'pointer', fontWeight: '600' }}
             >
               {loadingMore ? 'Loading...' : 'Load More'}
