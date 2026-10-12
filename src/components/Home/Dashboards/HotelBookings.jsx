@@ -277,8 +277,8 @@ const HotelBookings = () => {
                                     {booking.Status !== 'Cancel' && booking.BookingStatus !== 'Cancel' && (
                                       <div style={{ marginTop: '16px' }}>
                                         <button 
-                                          onClick={() => handleCancelBooking(booking.ReservationNo)}
-                                          disabled={loading}
+                                          onClick={() => handleCancelBooking(booking.ReservationNo)} 
+                                          disabled={true}
                                           style={{ padding: '8px 16px', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: '1px solid #ef4444', borderRadius: '6px', fontWeight: 'bold', cursor: loading ? 'not-allowed' : 'pointer', fontSize: '12px' }}
                                         >
                                           Cancel Reservation
