@@ -9,6 +9,10 @@
       "destination": "https://accounts.zoho.com/$1"
     },
     {
+      "source": "/ezee-api/(.*)",
+      "destination": "https://live.ipms247.com/$1"
+    },
+    {
       "source": "/server/(.*)",
       "destination": "https://cobnb-909749525.catalystserverless.com/server/$1"
     },
