@@ -38,6 +38,7 @@
 }
 
 [data-theme='dark'] {
+  color-scheme: dark;
   --color-primary: #ffffff;
   --color-secondary: #1c1c21;
   
@@ -49,6 +50,20 @@
   --color-bg-secondary: #1c1c21;
   
   --color-border: #333333;
+}
+
+[data-theme='dark'] input[type="date"] {
+  color-scheme: dark !important;
+}
+
+[data-theme='dark'] input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: brightness(0) invert(1) !important;
+  cursor: pointer;
+  opacity: 0.95 !important;
+}
+
+[data-theme='dark'] input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1 !important;
 }
 
 * {
