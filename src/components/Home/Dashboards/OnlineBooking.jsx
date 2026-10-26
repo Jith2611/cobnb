@@ -29,7 +29,10 @@ const OnlineBooking = () => {
         { headers: { Authorization: `Zoho-oauthtoken ${refreshToken}` } }
       );
       if (res?.data && res.data.code === 3000) {
-        const list = res.data.data || [];
+        // Only include properties that have a configured eZee Hotel ID
+        const list = (res.data.data || []).filter(
+          (item) => Boolean(item?.Ezee_Hotel_ID && String(item.Ezee_Hotel_ID).trim())
+        );
         setBuildings(list);
         setFilteredBuildings(list);
       }
@@ -85,7 +88,10 @@ const OnlineBooking = () => {
     const hotelCode = item?.Ezee_Hotel_ID;
     const apiKey = item?.Ezee_Key;
     const hotelName = item?.Building_Name;
-    const buildingImage = item?.Mobile_App_Image?.url || item?.Mobile_App_Image?.value;
+    const buildingImage = item?.Mobile_App_Image?.url ||
+      item?.Mobile_App_Image?.value ||
+      (typeof item?.Mobile_App_Image === 'string' ? item.Mobile_App_Image : '') ||
+      '';
 
     if (!hotelCode || !apiKey) {
       alert(`eZee Hotel Code or API Key is not configured for ${hotelName || 'this building'}.`);
@@ -97,7 +103,8 @@ const OnlineBooking = () => {
         hotelCode,
         apiKey,
         hotelName,
-        buildingImage
+        buildingImage,
+        buildingId: item?.ID
       }
     });
   };
@@ -233,53 +240,6 @@ const OnlineBooking = () => {
                       pointerEvents: 'none'
                     }} />
 
-                    {/* Map Icon Button on the Card Image */}
-                    <button
-                      type="button"
-                      title="View on Google Maps"
-                      onClick={(e) => handleOpenMap(e, item)}
-                      className="map-button"
-                      style={{
-                        position: 'absolute',
-                        top: '14px',
-                        right: '14px',
-                        background: 'rgba(255, 255, 255, 0.92)',
-                        color: 'var(--color-text-main)',
-                        border: '1px solid rgba(0, 0, 0, 0.08)',
-                        borderRadius: '50%',
-                        width: '38px',
-                        height: '38px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        cursor: 'pointer',
-                        backdropFilter: 'blur(8px)',
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                        transition: 'transform 0.2s ease, background-color 0.2s ease',
-                        zIndex: 2
-                      }}
-                    >
-                      <MapPin size={18} color="#e11d48" />
-                    </button>
-
-                    {/* Badge for eZee Status */}
-                    <div style={{
-                      position: 'absolute',
-                      top: '14px',
-                      left: '14px',
-                      background: hasEzeeConfig ? 'rgba(34, 197, 94, 0.9)' : 'rgba(107, 114, 128, 0.9)',
-                      color: '#ffffff',
-                      fontSize: '11px',
-                      fontWeight: '700',
-                      padding: '4px 10px',
-                      borderRadius: '20px',
-                      letterSpacing: '0.5px',
-                      backdropFilter: 'blur(4px)',
-                      textTransform: 'uppercase'
-                    }}>
-                      {hasEzeeConfig ? 'eZee Active' : 'Offline'}
-                    </div>
-
                     {/* Area tag on image bottom */}
                     {item.Area && (
                       <div style={{
@@ -288,13 +248,15 @@ const OnlineBooking = () => {
                         left: '14px',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '4px',
+                        gap: '6px',
+                        background: 'rgba(0, 0, 0, 0.45)',
+                        backdropFilter: 'blur(4px)',
+                        padding: '4px 10px',
+                        borderRadius: '16px',
                         color: '#ffffff',
                         fontSize: '12px',
-                        fontWeight: '600',
-                        textShadow: '0 1px 3px rgba(0,0,0,0.8)'
+                        fontWeight: '600'
                       }}>
-                        <MapPin size={13} color="var(--color-accent)" />
                         <span>{item.Area}</span>
                       </div>
                     )}
@@ -307,36 +269,12 @@ const OnlineBooking = () => {
                         fontFamily: 'var(--font-heading)',
                         fontSize: '19px',
                         color: 'var(--color-text-main)',
-                        margin: '0 0 6px 0',
+                        margin: 0,
                         fontWeight: '600',
                         lineHeight: '1.3'
                       }}>
                         {item.Building_Name}
                       </h3>
-                      {item.Ezee_Hotel_ID && (
-                        <p style={{ margin: 0, fontSize: '13px', color: 'var(--color-text-muted)' }}>
-                          Hotel Code: <strong style={{ color: 'var(--color-text-main)' }}>{item.Ezee_Hotel_ID}</strong>
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Map action link */}
-                    <div
-                      onClick={(e) => handleOpenMap(e, item)}
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        color: 'var(--color-accent)',
-                        fontSize: '13px',
-                        fontWeight: '600',
-                        cursor: 'pointer',
-                        width: 'fit-content'
-                      }}
-                    >
-                      <MapPin size={14} />
-                      <span>View Location on Map</span>
-                      <ExternalLink size={12} style={{ opacity: 0.8 }} />
                     </div>
 
                     {/* Action Buttons */}
