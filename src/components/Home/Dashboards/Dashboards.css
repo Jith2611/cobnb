@@ -199,17 +199,23 @@
   flex-direction: column;
   cursor: pointer;
   background-color: var(--color-secondary);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   overflow: hidden;
   position: relative;
   height: 100%;
   box-shadow: var(--shadow-sm);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition: var(--transition-normal);
 }
 
 .property-card:hover {
   transform: translateY(-4px);
   box-shadow: var(--shadow-md);
+  border-color: var(--color-accent);
+}
+
+.property-card:hover .property-image {
+  transform: scale(1.05);
 }
 
 .property-image {
@@ -217,6 +223,7 @@
   background-size: cover;
   background-position: center;
   position: relative;
+  transition: var(--transition-normal);
 }
 
 .property-info {

@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import zohoAxios from '../../../utility/axiosInstance';
 import { getData } from '../../../utility/LocalStorageService';
 import { fetchRefreshToken } from '../../../helper';
-import { MapPin, Search, ArrowRight, Building2, ExternalLink, X } from 'lucide-react';
+import { MapPin, Search, Building2, X } from 'lucide-react';
+import './Dashboards.css';
 
 const OnlineBooking = () => {
   const [loading, setLoading] = useState(false);
@@ -147,13 +148,14 @@ const OnlineBooking = () => {
         {/* Responsive Search Bar */}
         <div className="online-booking-search-section">
           <div className="online-booking-search-bar">
-            <Search size={19} color="var(--color-text-muted)" style={{ flexShrink: 0 }} />
+            <Search size={20} className="online-booking-search-icon" />
             <input
               type="text"
               placeholder="Search by building name or area..."
               value={searchQuery}
               onChange={(e) => handleSearch(e.target.value)}
               className="online-booking-search-input"
+              aria-label="Search properties by building name or area"
             />
             {searchQuery && (
               <button
@@ -163,13 +165,22 @@ const OnlineBooking = () => {
                 title="Clear search"
                 aria-label="Clear search"
               >
-                <X size={15} />
+                <X size={16} />
               </button>
             )}
           </div>
           {searchQuery && (
-            <div className="online-booking-search-count">
-              {filteredBuildings.length} {filteredBuildings.length === 1 ? 'property' : 'properties'} found
+            <div className="online-booking-search-meta">
+              <span className="online-booking-search-count">
+                {filteredBuildings.length} {filteredBuildings.length === 1 ? 'property' : 'properties'} found
+              </span>
+              <button
+                type="button"
+                onClick={() => handleSearch('')}
+                className="online-booking-reset-link"
+              >
+                Clear
+              </button>
             </div>
           )}
         </div>
@@ -193,143 +204,33 @@ const OnlineBooking = () => {
             </p>
           </div>
         ) : (
-          <div className="online-booking-grid">
-            {filteredBuildings.map((item) => {
-              const imageUrl = item?.Mobile_App_Image?.url || item?.Mobile_App_Image?.value;
-              const hasEzeeConfig = Boolean(item?.Ezee_Hotel_ID && item?.Ezee_Key);
+          <div className="property-grid">
+            {filteredBuildings.map((item, index) => {
+              const bgImg = item?.Mobile_App_Image?.value || 
+                item?.Mobile_App_Image?.url || 
+                (typeof item?.Mobile_App_Image === 'string' ? item.Mobile_App_Image : '');
 
               return (
                 <div
-                  key={item.ID}
-                  className="online-booking-card"
+                  key={item?.ID || index}
+                  className="property-card"
                   onClick={() => handleProceed(item)}
-                  style={{
-                    background: 'var(--color-bg-secondary)',
-                    border: '1px solid var(--color-border)',
-                    borderRadius: '16px',
-                    overflow: 'hidden',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    boxShadow: 'var(--shadow-sm)',
-                    transition: 'transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease',
-                    cursor: 'pointer'
-                  }}
                 >
-                  {/* Property Image Container */}
-                  <div style={{ position: 'relative', width: '100%', height: '220px', backgroundColor: 'var(--color-bg-main)' }}>
-                    {imageUrl ? (
-                      <img
-                        src={imageUrl}
-                        alt={item.Building_Name || 'Property'}
-                        style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                        onError={(e) => {
-                          e.target.style.display = 'none';
-                        }}
-                      />
-                    ) : (
-                      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f3f4f6' }}>
-                        <Building2 size={54} color="#9ca3af" />
-                      </div>
-                    )}
-
-                    {/* Gradient Overlay */}
-                    <div style={{
-                      position: 'absolute',
-                      inset: 0,
-                      background: 'linear-gradient(180deg, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0) 40%, rgba(0,0,0,0.6) 100%)',
-                      pointerEvents: 'none'
-                    }} />
-
-                    {/* Area tag on image bottom */}
-                    {item.Area && (
-                      <div style={{
-                        position: 'absolute',
-                        bottom: '12px',
-                        left: '14px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        background: 'rgba(0, 0, 0, 0.45)',
-                        backdropFilter: 'blur(4px)',
-                        padding: '4px 10px',
-                        borderRadius: '16px',
-                        color: '#ffffff',
-                        fontSize: '12px',
-                        fontWeight: '600'
-                      }}>
-                        <span>{item.Area}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Property Details */}
-                  <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', flex: 1, gap: '14px' }}>
-                    <div>
-                      <h3 style={{
-                        fontFamily: 'var(--font-heading)',
-                        fontSize: '19px',
-                        color: 'var(--color-text-main)',
-                        margin: 0,
-                        fontWeight: '600',
-                        lineHeight: '1.3'
-                      }}>
-                        {item.Building_Name}
-                      </h3>
+                  <div
+                    className="property-image"
+                    style={{
+                      backgroundImage: bgImg ? `url(${bgImg})` : 'none',
+                      backgroundColor: 'var(--color-bg-secondary)'
+                    }}
+                  ></div>
+                  <div className="property-info" style={{ backgroundColor: 'var(--color-secondary)' }}>
+                    <div className="property-location">
+                      <MapPin size={12} color="var(--color-accent)" />
+                      {item?.Area || 'Malaysia'}
                     </div>
-
-                    {/* Action Buttons */}
-                    <div style={{ marginTop: 'auto', paddingTop: '8px', display: 'flex', gap: '10px' }}>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleProceed(item);
-                        }}
-                        disabled={!hasEzeeConfig}
-                        style={{
-                          flex: 1,
-                          padding: '12px 16px',
-                          background: hasEzeeConfig ? 'var(--color-accent)' : '#d1d5db',
-                          color: '#ffffff',
-                          border: 'none',
-                          borderRadius: '8px',
-                          fontSize: '14px',
-                          fontWeight: '700',
-                          cursor: hasEzeeConfig ? 'pointer' : 'not-allowed',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '6px',
-                          transition: 'background-color 0.2s ease, opacity 0.2s ease'
-                        }}
-                      >
-                        Proceed <ArrowRight size={16} />
-                      </button>
-
-                      {/* {hasEzeeConfig && (
-                        <button
-                          type="button"
-                          onClick={(e) => handleViewBookings(e, item)}
-                          title="View Reservations"
-                          style={{
-                            padding: '12px 14px',
-                            background: 'var(--color-bg-main)',
-                            color: 'var(--color-text-main)',
-                            border: '1px solid var(--color-border)',
-                            borderRadius: '8px',
-                            fontSize: '13px',
-                            fontWeight: '600',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '6px'
-                          }}
-                        >
-                          <Calendar size={15} /> Bookings
-                        </button>
-                      )} */}
-                    </div>
+                    <h4 style={{ color: 'var(--color-primary)', fontSize: '20px', fontWeight: '600' }}>
+                      {item?.Building_Name}
+                    </h4>
                   </div>
                 </div>
               );
@@ -351,45 +252,64 @@ const OnlineBooking = () => {
         }
         .online-booking-search-section {
           display: flex;
-          align-items: center;
-          flex-wrap: wrap;
-          gap: 12px;
-          margin-bottom: 32px;
+          flex-direction: column;
+          gap: 10px;
+          margin-bottom: 36px;
           width: 100%;
-          max-width: 580px;
+          max-width: 720px;
         }
         .online-booking-search-bar {
           background: var(--color-bg-secondary);
           border: 1px solid var(--color-border);
-          border-radius: 12px;
-          padding: 12px 16px;
+          border-radius: 14px;
+          padding: 14px 20px;
           display: flex;
           align-items: center;
-          gap: 10px;
+          gap: 12px;
           width: 100%;
+          box-sizing: border-box;
           box-shadow: var(--shadow-sm);
-          transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+          transition: border-color 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.25s ease;
+        }
+        .online-booking-search-bar:hover {
+          border-color: rgba(197, 168, 128, 0.6);
+          box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
         }
         .online-booking-search-bar:focus-within {
           border-color: var(--color-accent);
-          box-shadow: 0 0 0 3px rgba(197, 168, 128, 0.18);
+          box-shadow: 0 0 0 3px rgba(197, 168, 128, 0.2), 0 4px 16px rgba(0, 0, 0, 0.08);
           background: var(--color-bg-main);
+        }
+        .online-booking-search-icon {
+          color: var(--color-text-muted);
+          flex-shrink: 0;
+          transition: color 0.2s ease, transform 0.2s ease;
+        }
+        .online-booking-search-bar:focus-within .online-booking-search-icon {
+          color: var(--color-accent);
+          transform: scale(1.05);
         }
         .online-booking-search-input {
           border: none;
           background: transparent;
           outline: none;
           width: 100%;
-          font-size: 15px;
+          min-width: 0;
+          font-size: 16px;
           color: var(--color-text-main);
           font-family: var(--font-body);
+          line-height: 1.4;
+        }
+        .online-booking-search-input::placeholder {
+          color: var(--color-text-muted);
+          opacity: 0.75;
         }
         .online-booking-clear-btn {
           border: none;
           background: rgba(0, 0, 0, 0.06);
           color: var(--color-text-muted);
-          width: 24px;
-          height: 24px;
+          width: 28px;
+          height: 28px;
           border-radius: 50%;
           display: flex;
           align-items: center;
@@ -397,34 +317,119 @@ const OnlineBooking = () => {
           cursor: pointer;
           flex-shrink: 0;
           padding: 0;
-          transition: background-color 0.2s ease, color 0.2s ease;
+          transition: background-color 0.2s ease, color 0.2s ease, transform 0.15s ease;
         }
         .online-booking-clear-btn:hover {
-          background: rgba(0, 0, 0, 0.12);
+          background: rgba(0, 0, 0, 0.14);
           color: var(--color-text-main);
         }
-        .online-booking-search-count {
+        .online-booking-clear-btn:active {
+          transform: scale(0.9);
+        }
+        .online-booking-search-meta {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 2px 6px;
           font-size: 13px;
+        }
+        .online-booking-search-count {
           color: var(--color-text-muted);
           font-weight: 500;
-          padding-left: 4px;
         }
-        .online-booking-grid {
+        .online-booking-reset-link {
+          background: none;
+          border: none;
+          color: var(--color-accent);
+          font-size: 12px;
+          font-weight: 600;
+          text-decoration: underline;
+          cursor: pointer;
+          padding: 2px 4px;
+          transition: color 0.2s ease;
+        }
+        .online-booking-reset-link:hover {
+          color: var(--color-accent-hover);
+        }
+        .property-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-          gap: 28px;
+          grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+          gap: 32px;
         }
-        .online-booking-card:hover {
+        .property-card {
+          background: var(--color-secondary);
+          border: 1px solid var(--color-border);
+          border-radius: var(--radius-sm);
+          overflow: hidden;
+          cursor: pointer;
+          display: flex;
+          flex-direction: column;
+          transition: var(--transition-normal);
+        }
+        .property-card:hover {
           transform: translateY(-4px);
-          box-shadow: 0 12px 28px rgba(0,0,0,0.12);
-          border-color: var(--color-accent) !important;
+          box-shadow: var(--shadow-md);
+          border-color: var(--color-accent);
         }
-        .map-button:hover {
-          transform: scale(1.1);
-          background: #ffffff !important;
+        .property-card:hover .property-image {
+          transform: scale(1.05);
+        }
+        .property-image {
+          height: 240px;
+          background-size: cover;
+          background-position: center;
+          transition: var(--transition-normal);
+        }
+        .property-info {
+          padding: 24px;
+          background: var(--color-secondary);
+          position: relative;
+          z-index: 2;
+          display: flex;
+          flex-direction: column;
+          flex: 1;
+        }
+        .property-info h4 {
+          font-family: var(--font-heading);
+          font-size: 20px;
+          margin: 0;
+          color: var(--color-primary);
+          font-weight: 600;
+          line-height: 1.3;
+        }
+        .property-location {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          color: var(--color-text-muted);
+          font-size: 13px;
+          letter-spacing: 0.5px;
+          text-transform: uppercase;
+          margin-bottom: 8px;
         }
 
-        /* Mobile & Tablet Responsive Adjustments */
+        /* Large Screens (>= 1200px) */
+        @media (min-width: 1200px) {
+          .online-booking-search-section {
+            max-width: 760px;
+          }
+          .online-booking-search-bar {
+            padding: 16px 22px;
+            border-radius: 16px;
+          }
+        }
+
+        /* Tablet Screens (641px - 1024px) */
+        @media (min-width: 641px) and (max-width: 1024px) {
+          .online-booking-search-section {
+            max-width: 100%;
+          }
+          .online-booking-search-bar {
+            padding: 14px 18px;
+          }
+        }
+
+        /* Mobile Responsive Adjustments (<= 640px) */
         @media (max-width: 640px) {
           .online-booking-container {
             padding: 85px 16px 40px !important;
@@ -435,15 +440,28 @@ const OnlineBooking = () => {
           .online-booking-search-section {
             max-width: 100% !important;
             margin-bottom: 24px !important;
+            gap: 8px !important;
           }
           .online-booking-search-bar {
-            padding: 10px 14px !important;
-            border-radius: 10px !important;
+            padding: 12px 14px !important;
+            border-radius: 12px !important;
+            gap: 10px !important;
+            min-height: 48px !important;
           }
           .online-booking-search-input {
             font-size: 16px !important; /* Prevents auto-zoom on iOS Safari */
           }
-          .online-booking-grid {
+          .online-booking-clear-btn {
+            width: 32px !important;
+            height: 32px !important;
+            min-width: 32px !important;
+            min-height: 32px !important;
+          }
+          .online-booking-search-meta {
+            padding: 0 4px !important;
+            font-size: 12px !important;
+          }
+          .property-grid {
             grid-template-columns: 1fr !important;
             gap: 20px !important;
           }

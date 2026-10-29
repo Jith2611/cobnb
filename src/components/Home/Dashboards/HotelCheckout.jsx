@@ -40,6 +40,7 @@ const HotelCheckout = () => {
   const [appliedPromoData, setAppliedPromoData] = useState(null);
 
   useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
     loadUserData();
   }, []);
 
@@ -300,15 +301,45 @@ const HotelCheckout = () => {
       return;
     }
 
-    /*
-    ====================================================================
-    BOOK ROOM API (COMMENTED OUT AS REQUESTED)
-    ====================================================================
+    // Resolve IDs with multiple safe fallbacks (state, room, rawEzee, rawZoho, cobnb_hotel_selection)
+    const savedHotelInfo = (() => {
+      try {
+        return JSON.parse(sessionStorage.getItem('cobnb_hotel_selection') || '{}');
+      } catch (_) {
+        return {};
+      }
+    })();
+
+    const resolvedHotelCode = state.hotelCode
+      || room?.hotelcode
+      || room?.Hotel_Code
+      || room?.HotelCode
+      || room?.rawEzee?.hotelcode
+      || savedHotelInfo.hotelCode
+      || '';
+
+    const resolvedRoomTypeId = room?.roomtypeunkid
+      || room?.rawEzee?.roomtypeunkid
+      || room?.rawZoho?.Ezee_Room_Type_ID
+      || room?.Ezee_Room_Type_ID
+      || '';
+
+    const resolvedRateTypeId = room?.ratetypeunkid
+      || room?.rawEzee?.ratetypeunkid
+      || room?.Rate_Type_ID
+      || '';
+
+    const resolvedRoomRateId = room?.roomrateunkid
+      || room?.rawEzee?.roomrateunkid
+      || room?.Room_Rate_ID
+      || '';
+
+    // 2. Prepare Booking Payload for Debug / Post-Payment Booking
     const bookingPayload = {
-      hotelCode: room?.hotelcode,
-      roomTypeId: room?.roomtypeunkid,
-      rateTypeId: room?.ratetypeunkid,
-      roomRateId: room?.roomrateunkid,
+      hotelCode: resolvedHotelCode,
+      roomTypeId: resolvedRoomTypeId,
+      rateTypeId: resolvedRateTypeId,
+      roomRateId: resolvedRoomRateId,
       checkInDate: checkInDate,
       checkOutDate: checkOutDate,
       numAdults: adults,
@@ -331,6 +362,10 @@ const HotelCheckout = () => {
       totalAmount: totalPrice
     };
 
+    /*
+    ====================================================================
+    BOOK ROOM API CALL (REMAINS COMMENTED OUT AS REQUESTED)
+    ====================================================================
     try {
       const response = await axios.post('/ezee-api/booking/reservation_api/booking.php', bookingPayload);
       if (response.data?.success) {
@@ -342,7 +377,7 @@ const HotelCheckout = () => {
     ====================================================================
     */
 
-    // 2. Fiuu Sandbox Credentials
+    // 3. Fiuu Sandbox Credentials
     const merchantID = 'SB_cobnb';
     const verifyKey = '5fe17c396eed59f4c93aaeb419367441';
     const secretKey = 'bad8dd13835f4668e32609a50adf991b';
@@ -359,14 +394,22 @@ const HotelCheckout = () => {
     const billDesc = `${room.Room_Name || 'Room Booking'} - ${hotelName || 'CoBnb'}`.slice(0, 95);
     const returnUrl = `${window.location.origin}/payment-return`;
 
-    // Save pending booking details in sessionStorage
+    // Save pending booking details and bookingPayload in sessionStorage
     try {
       sessionStorage.setItem('cobnb_pending_booking', JSON.stringify({
         orderid,
         amount: formattedAmount,
         currency: currencySign || 'MYR',
-        room,
-        hotelName,
+        bookingPayload,
+        room: {
+          ...room,
+          hotelcode: resolvedHotelCode,
+          roomtypeunkid: resolvedRoomTypeId,
+          ratetypeunkid: resolvedRateTypeId,
+          roomrateunkid: resolvedRoomRateId
+        },
+        hotelCode: resolvedHotelCode,
+        hotelName: hotelName || savedHotelInfo.hotelName || 'CoBnb',
         checkInDate,
         checkOutDate,
         adults,
@@ -377,7 +420,7 @@ const HotelCheckout = () => {
         appliedPromoData,
         secretKey
       }));
-    } catch (_) {}
+    } catch (_) { }
 
     console.group('%c💳 Initiating Fiuu Payment Gateway', 'color: #3b82f6; font-size: 14px; font-weight: bold;');
     console.log('Merchant ID:', merchantID);
@@ -467,7 +510,7 @@ const HotelCheckout = () => {
   };
 
   return (
-    <div style={{ minHeight: '100vh', padding: '80px 24px 60px', background: 'var(--color-bg-main)' }}>
+    <div className="hotel-checkout-page" style={{ minHeight: '100vh', padding: '80px 24px 60px', background: 'var(--color-bg-main)' }}>
       <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
 
         {/* Header */}
@@ -587,7 +630,7 @@ const HotelCheckout = () => {
                   <div style={{ display: 'flex', gap: '10px' }}>
                     <input
                       type="text"
-                      placeholder="e.g. FLAT20, CLOUSTAY, TESTNIGHTS"
+                      placeholder="e.g. STAY10"
                       value={promoCode}
                       onChange={(e) => {
                         setPromoCode(e.target.value.toUpperCase());
@@ -733,17 +776,26 @@ const HotelCheckout = () => {
                 <h2 style={{ fontFamily: 'var(--font-heading)', color: 'var(--color-text-main)', fontSize: '18px', margin: 0 }}>Payment & Policies</h2>
               </div>
 
-              <div style={{ padding: '12px', background: 'var(--color-bg-main)', border: '1px solid var(--color-border)', borderRadius: '10px', marginBottom: '20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <CreditCard size={20} color="var(--color-text-muted)" />
+              <div style={{ padding: '14px', background: 'var(--color-bg-main)', border: '1px solid var(--color-border)', borderRadius: '10px', marginBottom: '20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: 'rgba(197, 168, 128, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <CreditCard size={18} color="var(--color-accent)" />
+                  </div>
                   <div>
-                    <h4 style={{ margin: 0, color: 'var(--color-text-main)', fontSize: '14px' }}>Secure Online Payment</h4>
-                    <p style={{ margin: '2px 0 0 0', color: 'var(--color-text-muted)', fontSize: '12px' }}>Cards, UPI, and Net Banking supported</p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <h4 style={{ margin: 0, color: 'var(--color-text-main)', fontSize: '14px', fontWeight: 700 }}>Fiuu Payment Gateway</h4>
+                      <span style={{ fontSize: '10px', color: '#10b981', background: 'rgba(16, 185, 129, 0.12)', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>SECURE</span>
+                    </div>
+                    <p style={{ margin: '3px 0 0 0', color: 'var(--color-text-muted)', fontSize: '12px' }}>
+                      Credit/Debit Cards, FPX Online Banking & E-Wallets supported
+                    </p>
                   </div>
                 </div>
-                <div style={{ display: 'flex', gap: '4px' }}>
-                  <div style={{ width: '32px', height: '18px', background: '#ff5f00', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '8px', fontWeight: 'bold' }}>MC</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                  <div style={{ padding: '3px 7px', background: 'var(--color-accent)', borderRadius: '4px', color: '#111', fontSize: '10px', fontWeight: '800', letterSpacing: '0.5px' }}>FIUU</div>
+                  <div style={{ padding: '3px 7px', background: '#005baa', borderRadius: '4px', color: '#fff', fontSize: '9px', fontWeight: 'bold' }}>FPX</div>
                   <div style={{ width: '32px', height: '18px', background: '#1a1f71', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '8px', fontWeight: 'bold' }}>VISA</div>
+                  <div style={{ width: '32px', height: '18px', background: '#ff5f00', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '8px', fontWeight: 'bold' }}>MC</div>
                 </div>
               </div>
 
@@ -882,6 +934,24 @@ const HotelCheckout = () => {
 
         </div>
       </div>
+
+      <style dangerouslySetInnerHTML={{
+        __html: `
+        @keyframes checkoutSlideUp {
+          0% {
+            opacity: 0;
+            transform: translateY(60px);
+          }
+          100% {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        .hotel-checkout-page {
+          animation: checkoutSlideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+          will-change: transform, opacity;
+        }
+      `}} />
     </div>
   );
 };

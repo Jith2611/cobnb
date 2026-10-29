@@ -85,6 +85,27 @@ const ImageSlider = ({ images, mobileAppImage, hotelImage, onImageClick }) => {
   );
 };
 
+const formatDateToYMD = (d) => {
+  const date = new Date(d);
+  if (isNaN(date.getTime())) return '';
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const addDaysToDateString = (ymdString, days = 1) => {
+  if (!ymdString) return '';
+  const parts = ymdString.split('-').map(Number);
+  if (parts.length !== 3 || parts.some(isNaN)) return '';
+  const [year, month, day] = parts;
+  const date = new Date(year, month - 1, day);
+  date.setDate(date.getDate() + days);
+  return formatDateToYMD(date);
+};
+
+const getTodayYMD = () => formatDateToYMD(new Date());
+
 const HotelAvailability = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -118,14 +139,13 @@ const HotelAvailability = () => {
 
   const { hotelCode, apiKey, hotelName, buildingImage, buildingId } = savedHotelInfo;
 
-  // Search parameters
+  // Search parameters: checkout date is by default checkin date + 1 or later
   const [searchParams, setSearchParams] = useState(() => {
-    const today = new Date();
-    const tomorrow = new Date();
-    tomorrow.setDate(today.getDate() + 1);
+    const todayStr = getTodayYMD();
+    const tomorrowStr = addDaysToDateString(todayStr, 1);
     return {
-      check_in_date: today.toISOString().split('T')[0],
-      check_out_date: tomorrow.toISOString().split('T')[0],
+      check_in_date: todayStr,
+      check_out_date: tomorrowStr,
       number_adults: 1,
       number_children: 0,
       num_rooms: 1,
@@ -238,17 +258,51 @@ const HotelAvailability = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setSearchParams(prev => ({ ...prev, [name]: value }));
+    if (name === 'check_in_date') {
+      const minCheckOut = addDaysToDateString(value, 1);
+      setSearchParams(prev => {
+        // If checkout date is not set or is <= the new checkin date,
+        // update checkout date by default to checkin date + 1
+        const shouldUpdateCheckOut = !prev.check_out_date || prev.check_out_date <= value;
+        return {
+          ...prev,
+          check_in_date: value,
+          check_out_date: shouldUpdateCheckOut ? minCheckOut : prev.check_out_date
+        };
+      });
+    } else if (name === 'check_out_date') {
+      setSearchParams(prev => {
+        // Checkout date cannot be same or before checkin date
+        const minCheckOut = addDaysToDateString(prev.check_in_date, 1);
+        if (value <= prev.check_in_date) {
+          return {
+            ...prev,
+            check_out_date: minCheckOut
+          };
+        }
+        return { ...prev, [name]: value };
+      });
+    } else {
+      setSearchParams(prev => ({ ...prev, [name]: value }));
+    }
   };
 
   const checkAvailability = async (e) => {
     if (e) e.preventDefault();
     if (!hotelCode || !apiKey) return;
 
+    let { check_in_date, check_out_date, number_adults, number_children, num_rooms } = searchParams;
+    if (!check_in_date) {
+      check_in_date = getTodayYMD();
+    }
+    if (!check_out_date || check_out_date <= check_in_date) {
+      check_out_date = addDaysToDateString(check_in_date, 1);
+      setSearchParams(prev => ({ ...prev, check_in_date, check_out_date }));
+    }
+
     setLoading(true);
     setError(null);
 
-    const { check_in_date, check_out_date, number_adults, number_children, num_rooms } = searchParams;
     const ezeeUrl = `/ezee-api/booking/reservation_api/listing.php?request_type=RoomList&HotelCode=${hotelCode}&APIKey=${apiKey}&check_in_date=${check_in_date}&check_out_date=${check_out_date}&number_adults=${number_adults}&number_children=${number_children}&num_rooms=${num_rooms}&property_configuration_info=0&showtax=1&show_only_available_rooms=1&language=en&packagefor=DESKTOP&promotionfor=DESKTOP`;
     const zohoReportUrl = `/zoho-api/api/v2/brandontan18/housekeeping-system/report/Room_Type_Mapping_Report`;
     const buildingReportUrl = `/zoho-api/api/v2/brandontan18/housekeeping-system/report/All_Building_Report?Active=Active`;
@@ -534,8 +588,16 @@ const HotelAvailability = () => {
             else adults = 2;
           }
 
+          const resolvedRoomTypeId = matchedEzee?.roomtypeunkid || zRoom.Ezee_Room_Type_ID || '';
+          const resolvedRateTypeId = matchedEzee?.ratetypeunkid || '';
+          const resolvedRoomRateId = matchedEzee?.roomrateunkid || '';
+
           return {
             zohoId: zRoom.ID,
+            hotelcode: hotelCode,
+            roomtypeunkid: resolvedRoomTypeId,
+            ratetypeunkid: resolvedRateTypeId,
+            roomrateunkid: resolvedRoomRateId,
             Room_Name: roomName,
             Roomtype_Name: roomName,
             Roomtype_Short_code: roomCode,
@@ -565,6 +627,10 @@ const HotelAvailability = () => {
           }
           return {
             ...room,
+            hotelcode: room.hotelcode || hotelCode,
+            roomtypeunkid: room.roomtypeunkid || '',
+            ratetypeunkid: room.ratetypeunkid || '',
+            roomrateunkid: room.roomrateunkid || '',
             RoomImages: roomImages,
             room_main_image: roomImages[0]?.image || mobileAppImage,
             NewRoomAmenities: [],
@@ -683,6 +749,7 @@ const HotelAvailability = () => {
               <input
                 type="date"
                 name="check_in_date"
+                min={getTodayYMD()}
                 value={searchParams.check_in_date}
                 onChange={handleInputChange}
                 onClick={(e) => { try { e.target.showPicker(); } catch (_) {} }}
@@ -706,6 +773,7 @@ const HotelAvailability = () => {
               <input
                 type="date"
                 name="check_out_date"
+                min={addDaysToDateString(searchParams.check_in_date, 1)}
                 value={searchParams.check_out_date}
                 onChange={handleInputChange}
                 onClick={(e) => { try { e.target.showPicker(); } catch (_) {} }}
@@ -915,6 +983,10 @@ const HotelAvailability = () => {
                           state: {
                             room: {
                               ...room,
+                              hotelcode: room.hotelcode || hotelCode,
+                              roomtypeunkid: room.roomtypeunkid || room.rawEzee?.roomtypeunkid || room.rawZoho?.Ezee_Room_Type_ID || '',
+                              ratetypeunkid: room.ratetypeunkid || room.rawEzee?.ratetypeunkid || '',
+                              roomrateunkid: room.roomrateunkid || room.rawEzee?.roomrateunkid || '',
                               Room_Name: room.Room_Name,
                               Roomtype_Name: room.Roomtype_Name,
                               room_main_image: room.room_main_image,
@@ -922,6 +994,8 @@ const HotelAvailability = () => {
                               room_rates_info: room.room_rates_info || { totalprice_inclusive_all: price },
                               currency_sign: room.currency_sign
                             },
+                            hotelCode: hotelCode,
+                            apiKey: apiKey,
                             hotelName: hotelName || 'Hotel',
                             checkInDate: searchParams.check_in_date,
                             checkOutDate: searchParams.check_out_date,

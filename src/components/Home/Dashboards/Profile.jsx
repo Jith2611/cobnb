@@ -29,6 +29,18 @@ const Profile = () => {
   const getUserFunc = async (id) => {
     try {
       setLoading(true);
+      const stored = await getData('userDetails');
+      if (stored) {
+        try {
+          setUserDetails(typeof stored === 'string' ? JSON.parse(stored) : stored);
+        } catch (_) {}
+      }
+
+      if (!id || String(id).startsWith('guest') || id === 'finance-owner') {
+        setLoading(false);
+        return;
+      }
+
       const refreshToken = await getData('refreshToken');
       const res = await zohoAxios.get(
         `/zoho-api/api/v2/brandontan18/housekeeping-system/report/loyalty_members_Report/${id}`,

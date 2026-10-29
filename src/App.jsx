@@ -25,6 +25,7 @@ import HotelAvailability from './components/Home/Dashboards/HotelAvailability';
 import HotelCheckout from './components/Home/Dashboards/HotelCheckout';
 import HotelBookings from './components/Home/Dashboards/HotelBookings';
 import PaymentReturn from './components/Home/Dashboards/PaymentReturn';
+import BookingConfirmation from './components/Home/Dashboards/BookingConfirmation';
 import './App.css';
 
 const ProtectedRoute = ({ children }) => {
@@ -78,6 +79,7 @@ function App() {
       <Route path="/hotel-checkout" element={<DashboardRoute><HotelCheckout /></DashboardRoute>} />
       <Route path="/hotel-bookings" element={<DashboardRoute><HotelBookings /></DashboardRoute>} />
       <Route path="/payment-return" element={<DashboardRoute><PaymentReturn /></DashboardRoute>} />
+      <Route path="/booking-confirmation" element={<DashboardRoute><BookingConfirmation /></DashboardRoute>} />
     </Routes>
   );
 }

@@ -1,16 +1,18 @@
 /**
  * axiosInstance.js
  *
- * Calls the Catalyst token manager BEFORE every Zoho API request.
- * Token is cached in localStorage. On 1030, retries with a fresh token.
+ * Handles Zoho API authentication with automatic token caching and refresh.
+ * If token is expired or Zoho returns 1030, automatically refreshes via Zoho Accounts
+ * or Catalyst token manager and retries the request.
  */
 
 import axios from 'axios';
 import { storeData, getData } from './LocalStorageService';
+import { client_id, client_secret, grant_type, refresh_token } from '../constants/appconstant';
 
 const TOKEN_URL = '/server/zohoTokenManager_COBNB';
+const TOKEN_CACHE_DURATION_MS = 40 * 60 * 1000; // 40 minutes (Zoho tokens last 60 minutes)
 
-// Deduplicate simultaneous token fetches
 let isRefreshing = false;
 let refreshQueue = [];
 
@@ -19,47 +21,99 @@ const processQueue = (token) => {
   refreshQueue = [];
 };
 
-const fetchFreshToken = async () => {
+// Directly fetch a fresh token from Zoho Accounts via OAuth refresh token
+export const fetchDirectZohoToken = async () => {
+  try {
+    const res = await axios.post(
+      `/zoho-accounts/oauth/v2/token?refresh_token=${refresh_token}&client_id=${client_id}&client_secret=${client_secret}&grant_type=${grant_type}`,
+      {},
+      { timeout: 10000 }
+    );
+    const token = res?.data?.access_token;
+    if (token) {
+      await storeData('refreshToken', token);
+      await storeData('refreshTokenTimestamp', Date.now().toString());
+      return token;
+    }
+  } catch (err) {
+    console.error('[Token] Direct Zoho Accounts refresh failed:', err?.message);
+  }
+  return null;
+};
+
+// Fetch from Catalyst serverless token manager
+const fetchCatalystToken = async () => {
+  try {
+    const res = await axios.get(TOKEN_URL, { timeout: 8000 });
+    const token = res?.data?.access_token;
+    if (token) {
+      await storeData('refreshToken', token);
+      await storeData('refreshTokenTimestamp', Date.now().toString());
+      return token;
+    }
+  } catch (err) {
+    console.warn('[Token] Catalyst token manager failed or timed out:', err?.message);
+  }
+  return null;
+};
+
+export const fetchFreshToken = async (forceRefresh = false) => {
+  if (!forceRefresh) {
+    try {
+      const cachedToken = await getData('refreshToken');
+      const timestampStr = await getData('refreshTokenTimestamp');
+      const timestamp = timestampStr ? parseInt(timestampStr, 10) : 0;
+      const isFresh = cachedToken && (Date.now() - timestamp < TOKEN_CACHE_DURATION_MS);
+      if (isFresh) {
+        return cachedToken;
+      }
+    } catch {
+      // ignore local storage read errors
+    }
+  }
+
   if (isRefreshing) {
     return new Promise((resolve) => refreshQueue.push(resolve));
   }
   isRefreshing = true;
+
   try {
-    const res = await axios.get(TOKEN_URL);
-    const token = res?.data?.access_token;
+    // Attempt direct refresh from Zoho Accounts first (fast & always accurate)
+    let token = await fetchDirectZohoToken();
+    if (!token) {
+      // Fallback to Catalyst
+      token = await fetchCatalystToken();
+    }
     if (token) {
-      await storeData('refreshToken', token);
       processQueue(token);
       return token;
     }
-    console.warn('[Token] Unexpected response:', res?.data);
-  } catch (err) {
-    console.error('[Token] Fetch failed:', err?.message);
   } finally {
     isRefreshing = false;
   }
-  // Fallback: try localStorage if fetch failed
-  return await getData('refreshToken') || null;
+
+  // Final fallback: try any stored token
+  return (await getData('refreshToken')) || null;
 };
 
 const zohoAxios = axios.create();
 
-// ── REQUEST: always fetch fresh token first ───────────────────────────────────
+// ── REQUEST: Attach Authorization header ─────────────────────────────────────
 zohoAxios.interceptors.request.use(
   async (config) => {
-    // Locally Vite intercepts /zoho-api, and in production Vercel intercepts /zoho-api via vercel.json.
-    // Do not strip the prefix so the Vercel proxy can catch it.
-
     const token = await fetchFreshToken();
     if (token) {
       config.headers['Authorization'] = `Zoho-oauthtoken ${token}`;
+    }
+    if (!config.headers['Accept']) {
+      config.headers['Accept'] = 'application/json';
     }
     return config;
   },
   (error) => Promise.reject(error)
 );
 
-// ── RESPONSE: retry once on Zoho 1030 token error ────────────────────────────
+// ── RESPONSE: Retry once on Zoho 1030 token error ────────────────────────────
 zohoAxios.interceptors.response.use(
   (response) => {
     if (response?.data?.code === 1030) {
@@ -75,9 +129,9 @@ zohoAxios.interceptors.response.use(
     if (isTokenError && originalRequest && !originalRequest._retried) {
       originalRequest._retried = true;
       try {
-        const freshToken = await axios.get(TOKEN_URL).then(r => r?.data?.access_token);
+        console.warn('[Token] 1030 detected. Refreshing token directly from Zoho Accounts...');
+        const freshToken = await fetchDirectZohoToken();
         if (freshToken) {
-          await storeData('refreshToken', freshToken);
           originalRequest.headers['Authorization'] = `Zoho-oauthtoken ${freshToken}`;
           return zohoAxios(originalRequest);
         }
