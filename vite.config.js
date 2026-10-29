@@ -1,8 +1,28 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
+function paymentReturnPlugin() {
+  return {
+    name: 'payment-return-handler',
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        if ((req.url?.startsWith('/payment-return') || req.url?.startsWith('/api/payment-return')) && req.method === 'POST') {
+          let body = '';
+          req.on('data', chunk => { body += chunk; });
+          req.on('end', () => {
+            res.writeHead(303, { Location: `/payment-return?${body}` });
+            res.end();
+          });
+          return;
+        }
+        next();
+      });
+    }
+  };
+}
+
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), paymentReturnPlugin()],
   server: {
     proxy: {
       '/zoho-api': {

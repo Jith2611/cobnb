@@ -142,6 +142,7 @@ const HotelAvailability = () => {
     buildingImage || 'https://images.unsplash.com/photo-1566073771259-6a8506099945?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80'
   );
   const [amenitiesModalData, setAmenitiesModalData] = useState(null);
+  const [unitImagesData, setUnitImagesData] = useState([]);
 
   const handleOpenPreview = (images, index, title) => {
     if (!images || images.length === 0) {
@@ -330,11 +331,6 @@ const HotelAvailability = () => {
         console.groupEnd();
       }
 
-      // Extract highlights from eZee if available
-      if (ezeeRooms.length > 0 && Array.isArray(ezeeRooms[0]?.Hotel_amenitiesNew)) {
-        setPropertyHighlights(ezeeRooms[0].Hotel_amenitiesNew);
-      }
-
       // Parse Zoho Creator Room_Type_Mapping_Report
       let zohoMappings = [];
       if (zohoRes.status === 'fulfilled' && zohoRes.value?.data?.data) {
@@ -364,6 +360,54 @@ const HotelAvailability = () => {
         });
       } else if (zohoRes.status === 'rejected') {
         console.error('[Zoho] Room_Type_Mapping_Report fetch error:', zohoRes.reason);
+      }
+
+      // Extract Property Highlights strictly from Zoho Creator mapping records (never from eZee)
+      const allZohoAmenities = [...new Set(
+        zohoMappings.flatMap(z => {
+          const raw = z['Amenities.Aminities'] || z.Amenities || z.Aminities || '';
+          return typeof raw === 'string' ? raw.split(/[,;\n]/).map(a => a.trim()).filter(Boolean) : [];
+        })
+      )].map(a => ({ amenity: a }));
+      setPropertyHighlights(allZohoAmenities);
+
+      // ── Fetch Unit_Images_by_Building_by_Room_Type_Report filtered by Building_Name.ID ──
+      // Extract the Building ID from the Room_Type_Mapping_Report response
+      const matchedMapping = zohoMappings[0];
+      const mappingBuildingId = matchedMapping?.['Building_Name.ID']
+        || (typeof matchedMapping?.Building_Name === 'object' ? matchedMapping?.Building_Name?.ID : null)
+        || buildingId
+        || matchedMapping?.ID;
+
+      console.group('%c🏢 [Room_Type_Mapping_Report] Matched Building ID', 'color: #3b82f6; font-size: 13px; font-weight: bold;');
+      console.log('Matched Record from Room_Type_Mapping_Report:', matchedMapping);
+      console.log('Extracted Building_Name.ID:', mappingBuildingId);
+      console.groupEnd();
+
+      let buildingUnitImages = [];
+      if (mappingBuildingId) {
+        try {
+          const unitImagesUrl = `/zoho-api/api/v2/brandontan18/housekeeping-system/report/Unit_Images_by_Building_by_Room_Type_Report?Building_Name.ID=${mappingBuildingId}`;
+          console.log(`📡 [HotelAvailability] Calling: report/Unit_Images_by_Building_by_Room_Type_Report?Building_Name.ID=${mappingBuildingId}`);
+          const unitImagesRes = await zohoAxios.get(unitImagesUrl);
+          buildingUnitImages = Array.isArray(unitImagesRes?.data?.data) ? unitImagesRes.data.data : [];
+          console.group('%c📸 [Unit_Images_by_Building_by_Room_Type_Report] Filtered Data', 'color: #10b981; font-size: 14px; font-weight: bold;');
+          console.log('Query Parameter Building_Name.ID:', mappingBuildingId);
+          console.log('API URL:', unitImagesUrl);
+          console.log('Full Axios Response:', unitImagesRes);
+          console.log('Response Data (data):', unitImagesRes?.data);
+          console.log('Unit Images Records (data.data):', buildingUnitImages);
+          if (buildingUnitImages.length > 0) {
+            console.log(`Total Unit Images Count: ${buildingUnitImages.length}`);
+            console.log('Sample Unit Image Record:', buildingUnitImages[0]);
+          }
+          console.groupEnd();
+          setUnitImagesData(buildingUnitImages);
+        } catch (unitErr) {
+          console.group('%c❌ [Unit_Images_by_Building_by_Room_Type_Report] Filtered Error', 'color: #ef4444; font-size: 14px; font-weight: bold;');
+          console.error('Error fetching filtered unit images:', unitErr);
+          console.groupEnd();
+        }
       }
 
       // Now combine the rooms:
@@ -397,31 +441,86 @@ const HotelAvailability = () => {
           // Description from Zoho
           const roomDescription = zRoom.Description?.trim() || (matchedEzee?.Room_Description || 'Comfortable and elegantly appointed accommodation designed with contemporary furnishings and modern essentials.');
 
-          // Amenities from Zoho Creator (Amenities.Aminities)
-          const zohoAmenitiesRaw = zRoom['Amenities.Aminities'] || zRoom.Amenities || '';
+          // Amenities strictly from Zoho Creator (Amenities.Aminities) - never from eZee
+          const zohoAmenitiesRaw = zRoom['Amenities.Aminities'] || zRoom.Amenities || zRoom.Aminities || '';
           let amenities = [];
-          if (typeof zohoAmenitiesRaw === 'string' && zohoAmenitiesRaw.trim()) {
+          if (Array.isArray(zohoAmenitiesRaw)) {
+            amenities = zohoAmenitiesRaw.map(a => ({
+              amenity: typeof a === 'object' ? (a.amenity || a.name || a.display_value || '') : String(a).trim()
+            })).filter(a => Boolean(a.amenity));
+          } else if (typeof zohoAmenitiesRaw === 'string' && zohoAmenitiesRaw.trim()) {
             amenities = zohoAmenitiesRaw
               .split(/[,;\n]/)
               .map(a => a.trim())
               .filter(Boolean)
               .map(a => ({ amenity: a }));
-          } else if (Array.isArray(matchedEzee?.NewRoomAmenities)) {
-            amenities = matchedEzee.NewRoomAmenities;
+          } else if (zohoAmenitiesRaw && typeof zohoAmenitiesRaw === 'object') {
+            const val = zohoAmenitiesRaw.Aminities || zohoAmenitiesRaw.display_value || zohoAmenitiesRaw.value || '';
+            if (typeof val === 'string' && val.trim()) {
+              amenities = val.split(/[,;\n]/).map(a => a.trim()).filter(Boolean).map(a => ({ amenity: a }));
+            }
           }
 
-          // Images: pulled directly from eZee
-          let roomImages = [];
-          if (Array.isArray(matchedEzee?.RoomImages) && matchedEzee.RoomImages.length > 0) {
-            roomImages = matchedEzee.RoomImages.filter(img => Boolean(img?.image || (typeof img === 'string' && img.trim())));
-          }
-          if (roomImages.length === 0 && matchedEzee?.room_main_image && String(matchedEzee.room_main_image).trim()) {
-            roomImages = [{ image: matchedEzee.room_main_image.trim() }];
-          }
+          // Images strictly from Zoho Creator Unit_Images_by_Building_by_Room_Type_Report - never from eZee
+          const matchedUnitImages = buildingUnitImages.filter(img => {
+            const imgRoomTypeId = img['Ezee_Room_Type.ID'] || img?.Ezee_Room_Type?.ID || (typeof img.Ezee_Room_Type === 'string' ? img.Ezee_Room_Type : '');
+            const imgRoomTypeName = img?.Ezee_Room_Type?.display_value || (typeof img.Ezee_Room_Type === 'string' ? img.Ezee_Room_Type : '');
 
-          // If image not available from eZee (e.g. Sold Out for Dates), show mobile app image!
+            // 1. Match by Zoho Room Type record ID
+            if (imgRoomTypeId && String(imgRoomTypeId).trim() === String(zRoom.ID).trim()) {
+              return true;
+            }
+            // 2. Match by eZee Room Type ID
+            if (imgRoomTypeId && zRoom.Ezee_Room_Type_ID && String(imgRoomTypeId).trim() === String(zRoom.Ezee_Room_Type_ID).trim()) {
+              return true;
+            }
+            // 3. Match by name
+            if (imgRoomTypeName && zRoom.Ezee_Room_Type && imgRoomTypeName.trim().toLowerCase() === zRoom.Ezee_Room_Type.trim().toLowerCase()) {
+              return true;
+            }
+            if (imgRoomTypeName && zRoom.Room_Type && imgRoomTypeName.trim().toLowerCase() === zRoom.Room_Type.trim().toLowerCase()) {
+              return true;
+            }
+            if (imgRoomTypeName && zRoom.Title && imgRoomTypeName.trim().toLowerCase() === zRoom.Title.trim().toLowerCase()) {
+              return true;
+            }
+            return false;
+          });
+
+          let roomImages = matchedUnitImages.map(img => {
+            let imageName = '';
+            const rawImg = img?.Image;
+            if (typeof rawImg === 'string') {
+              if (rawImg.includes('filepath=')) {
+                imageName = rawImg.split('filepath=')[1].split('&')[0];
+              } else {
+                imageName = rawImg.split('/').pop().split('?')[0];
+              }
+            } else if (rawImg?.url) {
+              if (rawImg.url.includes('filepath=')) {
+                imageName = rawImg.url.split('filepath=')[1].split('&')[0];
+              } else {
+                imageName = rawImg.url.split('/').pop().split('?')[0];
+              }
+            }
+            if (imageName.startsWith('/')) {
+              imageName = imageName.substring(1);
+            }
+            // Public image link format:
+            // "https://creatorapp.zohopublic.com/file" + zoho.appuri + "Unit_Images_by_Building_by_Room_Type_Report/" + img.ID + "/Image/image-download/AeFrT9vBX78Rh15vHXTq23ntJ1bZpAfjFK2XAfGqVQhSjxRar4b9TSyJCk1mDbjSmT8h4Pjgun29bnGyvskBv7TYGSD6DS6dUd27?filepath=/" + image_name
+            const public_image_link = `https://creatorapp.zohopublic.com/file/brandontan18/housekeeping-system/Unit_Images_by_Building_by_Room_Type_Report/${img.ID}/Image/image-download/AeFrT9vBX78Rh15vHXTq23ntJ1bZpAfjFK2XAfGqVQhSjxRar4b9TSyJCk1mDbjSmT8h4Pjgun29bnGyvskBv7TYGSD6DS6dUd27?filepath=/${imageName}`;
+            return {
+              image: public_image_link,
+              id: img.ID,
+              name: imageName
+            };
+          });
+
+          // Fallback to building image from Zoho All_Building_Report if no unit images exist for this room
           if (roomImages.length === 0 && mobileAppImage) {
             roomImages = [{ image: mobileAppImage }];
+          } else if (roomImages.length === 0 && effectiveHotelImage) {
+            roomImages = [{ image: effectiveHotelImage }];
           }
 
           // Occupancy info (eZee occupancy or estimated based on room type)
@@ -456,19 +555,19 @@ const HotelAvailability = () => {
           };
         }));
       } else if (ezeeRooms.length > 0) {
-        // Fallback: If no Zoho mappings found for this property, show eZee rooms
+        // Fallback: If no Zoho mappings found for this property, show eZee rooms (without eZee images/amenities)
         combinedRooms = ezeeRooms.map((room) => {
-          let roomImages = Array.isArray(room.RoomImages) && room.RoomImages.length > 0 ? room.RoomImages : [];
-          if (roomImages.length === 0 && room.room_main_image) {
-            roomImages = [{ image: room.room_main_image }];
-          }
-          if (roomImages.length === 0 && mobileAppImage) {
+          let roomImages = [];
+          if (mobileAppImage) {
             roomImages = [{ image: mobileAppImage }];
+          } else if (effectiveHotelImage) {
+            roomImages = [{ image: effectiveHotelImage }];
           }
           return {
             ...room,
             RoomImages: roomImages,
             room_main_image: roomImages[0]?.image || mobileAppImage,
+            NewRoomAmenities: [],
             price: room.room_rates_info?.totalprice_inclusive_all || room.room_rates_info?.rack_rate || null
           };
         });

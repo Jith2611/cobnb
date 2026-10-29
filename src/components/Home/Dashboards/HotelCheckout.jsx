@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Check, Moon, User, Lock, CreditCard, Tag, ShieldCheck, ChevronRight, Info, Sparkles, AlertCircle } from 'lucide-react';
 import { getData } from '../../../utility/LocalStorageService';
 import zohoAxios from '../../../utility/axiosInstance';
+import { md5 } from '../../../utility/md5';
 import { COUNTRY_CODES, POPULAR_COUNTRY_ISOS } from '../../../constants/countryCodes';
 
 const HotelCheckout = () => {
@@ -279,11 +280,29 @@ const HotelCheckout = () => {
     setPromoError(null);
   };
 
-  // Complete Booking API (commented out as requested)
+  // Complete Booking & Open Fiuu Payment Gateway
   const handleBookNow = () => {
+    // 1. Validation
+    if (!formData.firstName.trim() || !formData.lastName.trim()) {
+      alert('Please enter your first and last name.');
+      return;
+    }
+    if (!formData.email.trim()) {
+      alert('Please enter your email address.');
+      return;
+    }
+    if (!formData.mobile.trim()) {
+      alert('Please enter your phone number.');
+      return;
+    }
+    if (!formData.termsAccepted) {
+      alert('Please accept the Terms & Conditions and Privacy Policy.');
+      return;
+    }
+
     /*
     ====================================================================
-    TODO: COMPLETE BOOKING API INTEGRATION
+    BOOK ROOM API (COMMENTED OUT AS REQUESTED)
     ====================================================================
     const bookingPayload = {
       hotelCode: room?.hotelcode,
@@ -322,7 +341,82 @@ const HotelCheckout = () => {
     }
     ====================================================================
     */
-    alert("Booking API is currently disabled. This is a mockup for design purposes.");
+
+    // 2. Fiuu Sandbox Credentials
+    const merchantID = 'SB_cobnb';
+    const verifyKey = '5fe17c396eed59f4c93aaeb419367441';
+    const secretKey = 'bad8dd13835f4668e32609a50adf991b';
+
+    const orderid = 'COBNB-' + Date.now();
+    const formattedAmount = (parseFloat(totalPrice) || 0).toFixed(2);
+    // vcode = md5(amount + merchantID + orderid + verify_key)
+    const vcode = md5(formattedAmount + merchantID + orderid + verifyKey);
+
+    const billName = `${formData.firstName} ${formData.lastName}`.trim() || 'CoBnb Guest';
+    const cleanMobile = formData.mobile.replace(/^0+/, '');
+    const billMobile = `${formData.countryCode || '+60'}${cleanMobile}`.replace(/\s+/g, '');
+    const billEmail = formData.email.trim() || 'guest@cobnb.com';
+    const billDesc = `${room.Room_Name || 'Room Booking'} - ${hotelName || 'CoBnb'}`.slice(0, 95);
+    const returnUrl = `${window.location.origin}/payment-return`;
+
+    // Save pending booking details in sessionStorage
+    try {
+      sessionStorage.setItem('cobnb_pending_booking', JSON.stringify({
+        orderid,
+        amount: formattedAmount,
+        currency: currencySign || 'MYR',
+        room,
+        hotelName,
+        checkInDate,
+        checkOutDate,
+        adults,
+        children,
+        numRooms,
+        nightCount,
+        formData,
+        appliedPromoData,
+        secretKey
+      }));
+    } catch (_) {}
+
+    console.group('%c💳 Initiating Fiuu Payment Gateway', 'color: #3b82f6; font-size: 14px; font-weight: bold;');
+    console.log('Merchant ID:', merchantID);
+    console.log('Order ID:', orderid);
+    console.log('Amount:', formattedAmount);
+    console.log('vcode (MD5):', vcode);
+    console.log('Return URL:', returnUrl);
+    console.groupEnd();
+
+    // 3. Open Fiuu Payment Gateway via auto-submitting POST form
+    const paymentUrl = `https://sandbox-payment.fiuu.com/MOLPay/pay/${merchantID}/`;
+    const form = document.createElement('form');
+    form.setAttribute('method', 'POST');
+    form.setAttribute('action', paymentUrl);
+    form.setAttribute('style', 'display: none;');
+
+    const fields = {
+      amount: formattedAmount,
+      orderid: orderid,
+      bill_name: billName,
+      bill_email: billEmail,
+      bill_mobile: billMobile,
+      bill_desc: billDesc,
+      country: formData.countryIso || 'MY',
+      cur: 'MYR',
+      vcode: vcode,
+      returnurl: returnUrl
+    };
+
+    Object.entries(fields).forEach(([key, val]) => {
+      const input = document.createElement('input');
+      input.setAttribute('type', 'hidden');
+      input.setAttribute('name', key);
+      input.setAttribute('value', String(val));
+      form.appendChild(input);
+    });
+
+    document.body.appendChild(form);
+    form.submit();
   };
 
   if (!room) {
