@@ -334,9 +334,17 @@ const HotelCheckout = () => {
       || room?.Room_Rate_ID
       || '';
 
+    const resolvedApiKey = state.apiKey
+      || room?.apiKey
+      || room?.rawEzee?.apiKey
+      || room?.Ezee_Key
+      || savedHotelInfo.apiKey
+      || '';
+
     // 2. Prepare Booking Payload for Debug / Post-Payment Booking
     const bookingPayload = {
       hotelCode: resolvedHotelCode,
+      apiKey: resolvedApiKey,
       roomTypeId: resolvedRoomTypeId,
       rateTypeId: resolvedRateTypeId,
       roomRateId: resolvedRoomRateId,
@@ -404,11 +412,13 @@ const HotelCheckout = () => {
         room: {
           ...room,
           hotelcode: resolvedHotelCode,
+          apiKey: resolvedApiKey,
           roomtypeunkid: resolvedRoomTypeId,
           ratetypeunkid: resolvedRateTypeId,
           roomrateunkid: resolvedRoomRateId
         },
         hotelCode: resolvedHotelCode,
+        apiKey: resolvedApiKey,
         hotelName: hotelName || savedHotelInfo.hotelName || 'CoBnb',
         checkInDate,
         checkOutDate,

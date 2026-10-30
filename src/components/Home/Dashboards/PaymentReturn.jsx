@@ -1,6 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import zohoAxios from '../../../utility/axiosInstance';
+import { getData } from '../../../utility/LocalStorageService';
 import {
   CheckCircle2,
   XCircle,
@@ -18,7 +20,8 @@ import {
   Calendar,
   Building2,
   RotateCcw,
-  Loader2
+  Loader2,
+  Key
 } from 'lucide-react';
 
 const PaymentReturn = () => {
@@ -86,6 +89,13 @@ const PaymentReturn = () => {
     || hotelSelection?.hotelCode
     || '';
 
+  const resolvedApiKey = rawPayload.apiKey
+    || pendingBooking?.apiKey
+    || hotelSelection?.apiKey
+    || pendingBooking?.room?.apiKey
+    || pendingBooking?.room?.Ezee_Key
+    || '';
+
   const resolvedRoomTypeId = rawPayload.roomTypeId
     || pendingBooking?.room?.roomtypeunkid
     || pendingBooking?.room?.rawEzee?.roomtypeunkid
@@ -102,13 +112,56 @@ const PaymentReturn = () => {
     || pendingBooking?.room?.rawEzee?.roomrateunkid
     || '';
 
+  // Local overrides in case session was missing keys
+  const [apiKeyOverride, setApiKeyOverride] = useState('');
+  const [hotelCodeOverride, setHotelCodeOverride] = useState('');
+  const [roomTypeIdOverride, setRoomTypeIdOverride] = useState('');
+  const [rateTypeIdOverride, setRateTypeIdOverride] = useState('');
+  const [roomRateIdOverride, setRoomRateIdOverride] = useState('');
+  const [fetchingKey, setFetchingKey] = useState(false);
+
+  const effectiveHotelCode = hotelCodeOverride || resolvedHotelCode || '';
+  const effectiveApiKey = apiKeyOverride || resolvedApiKey || '';
+  const effectiveRoomTypeId = roomTypeIdOverride || resolvedRoomTypeId || '';
+  const effectiveRateTypeId = rateTypeIdOverride || resolvedRateTypeId || effectiveRoomTypeId || '';
+  const effectiveRoomRateId = roomRateIdOverride || resolvedRoomRateId || effectiveRoomTypeId || '';
+
+  // Auto-fetch APIKey from Zoho All_Building_Report if missing from session
+  useEffect(() => {
+    const autoFetchApiKey = async () => {
+      if (!resolvedApiKey && effectiveHotelCode && !apiKeyOverride) {
+        setFetchingKey(true);
+        try {
+          const refreshToken = await getData('refreshToken');
+          const res = await zohoAxios.get(
+            `/zoho-api/api/v2/brandontan18/housekeeping-system/report/All_Building_Report?Active=Active&Booking_Engine_Active=true`,
+            { headers: { Authorization: `Zoho-oauthtoken ${refreshToken}` } }
+          );
+          if (res?.data?.code === 3000 && Array.isArray(res.data.data)) {
+            const match = res.data.data.find(b => String(b.Ezee_Hotel_ID).trim() === String(effectiveHotelCode).trim());
+            if (match?.Ezee_Key) {
+              console.log('🔑 Auto-resolved Ezee_Key from Zoho:', match.Ezee_Key);
+              setApiKeyOverride(match.Ezee_Key);
+            }
+          }
+        } catch (err) {
+          console.warn('Could not auto-fetch apiKey from Zoho:', err);
+        } finally {
+          setFetchingKey(false);
+        }
+      }
+    };
+    autoFetchApiKey();
+  }, [resolvedApiKey, effectiveHotelCode, apiKeyOverride]);
+
   // Construct or retrieve bookingPayload
   const bookingPayload = {
     ...rawPayload,
-    hotelCode: resolvedHotelCode,
-    roomTypeId: resolvedRoomTypeId,
-    rateTypeId: resolvedRateTypeId,
-    roomRateId: resolvedRoomRateId,
+    hotelCode: effectiveHotelCode,
+    apiKey: effectiveApiKey,
+    roomTypeId: effectiveRoomTypeId,
+    rateTypeId: effectiveRateTypeId,
+    roomRateId: effectiveRoomRateId,
     checkInDate: rawPayload.checkInDate || pendingBooking?.checkInDate || 'YYYY-MM-DD',
     checkOutDate: rawPayload.checkOutDate || pendingBooking?.checkOutDate || 'YYYY-MM-DD',
     numAdults: rawPayload.numAdults || pendingBooking?.adults || 1,
@@ -131,59 +184,163 @@ const PaymentReturn = () => {
     totalAmount: rawPayload.totalAmount || pendingBooking?.amount || '0.00'
   };
 
+  // Construct official eZee BookingData JSON format per specification
+  const numRoomsInt = Math.max(1, parseInt(bookingPayload.numRooms || 1, 10));
+  const roomDetails = {};
+  for (let i = 1; i <= numRoomsInt; i++) {
+    const roomKey = `Room_${i}`;
+    const rawPrice = pendingBooking?.room?.room_rates_info?.totalprice_inclusive_all
+      || pendingBooking?.room?.room_rates_info?.rack_rate
+      || bookingPayload.totalAmount
+      || bookingPayload.subtotalAmount
+      || '0';
+    const perRoomBaseRate = (parseFloat(rawPrice) / numRoomsInt).toFixed(2);
+
+    const rObj = {
+      Rateplan_Id: String(effectiveRoomRateId || effectiveRoomTypeId || ''),
+      Ratetype_Id: String(effectiveRateTypeId || effectiveRoomTypeId || ''),
+      Roomtype_Id: String(effectiveRoomTypeId || ''),
+      baserate: String(perRoomBaseRate),
+      extradultrate: String(pendingBooking?.room?.room_rates_info?.extradultrate || "0"),
+      extrachildrate: String(pendingBooking?.room?.room_rates_info?.extrachildrate || "0"),
+      number_adults: String(bookingPayload.numAdults || 1),
+      number_children: String(bookingPayload.numChildren || 0),
+      ExtraChild_Age: parseInt(bookingPayload.numChildren || 0, 10) > 0 ? String(bookingPayload.extraChildAge || "5") : "",
+      Title: String(bookingPayload.guest?.title || 'Mr.'),
+      First_Name: String(bookingPayload.guest?.firstName || 'Guest').trim() || 'Guest',
+      Last_Name: String(bookingPayload.guest?.lastName || 'User').trim() || 'User',
+      Gender: '',
+      SpecialRequest: ''
+    };
+
+    // Note: Only include Promotion_Details if an actual eZee Promotion_Id exists,
+    // otherwise passing empty Promotion_Id triggers ParametersMissing error.
+    if (bookingPayload.appliedPromo?.id && bookingPayload.appliedPromo?.code) {
+      rObj.Promotion_Details = {
+        Promotional_Code: String(bookingPayload.appliedPromo.code),
+        Promotion_Id: String(bookingPayload.appliedPromo.id),
+        Promotion_Name: String(bookingPayload.appliedPromo.name || bookingPayload.appliedPromo.code),
+        Promotion_Description: String(bookingPayload.appliedPromo.type || '')
+      };
+    }
+
+    roomDetails[roomKey] = rObj;
+  }
+
+  const bookingData = {
+    Room_Details: roomDetails,
+    check_in_date: bookingPayload.checkInDate,
+    check_out_date: bookingPayload.checkOutDate,
+    Booking_Payment_Mode: paymentData.channel || 'Online',
+    Email_Address: String(bookingPayload.guest?.email || 'guest@cobnb.com').trim() || 'guest@cobnb.com',
+    Source_Id: '',
+    MobileNo: String(bookingPayload.guest?.phone || '').trim(),
+    Address: '',
+    State: '',
+    Country: 'Malaysia',
+    City: '',
+    Zipcode: '',
+    Fax: '',
+    Device: 'DESKTOP',
+    Languagekey: 'en',
+    paymenttypeunkid: ''
+  };
+
   const handleCopyJson = () => {
     try {
-      navigator.clipboard.writeText(JSON.stringify(bookingPayload, null, 2));
+      navigator.clipboard.writeText(JSON.stringify(bookingData, null, 2));
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (_) {}
   };
 
-  // Call eZee Booking API after payment success
-  const callBookingApi = async (overridePayload) => {
-    const payload = overridePayload || bookingPayload;
+  // Call eZee InsertBooking API on Make Booking button press
+  const callBookingApi = async () => {
+    // 1. Mandatory validation per eZee documentation
+    const missing = [];
+    if (!effectiveHotelCode) missing.push('HotelCode');
+    if (!effectiveApiKey) missing.push('APIKey');
+    if (!effectiveRoomTypeId) missing.push('Roomtype_Id');
+    if (!effectiveRateTypeId && !effectiveRoomTypeId) missing.push('Ratetype_Id');
+    if (!effectiveRoomRateId && !effectiveRoomTypeId) missing.push('Rateplan_Id');
+    if (!bookingPayload.checkInDate || bookingPayload.checkInDate === 'YYYY-MM-DD') missing.push('check_in_date');
+    if (!bookingPayload.checkOutDate || bookingPayload.checkOutDate === 'YYYY-MM-DD') missing.push('check_out_date');
+
+    if (missing.length > 0) {
+      setBookingError(`Missing mandatory eZee parameters: ${missing.join(', ')}. Please verify or enter values below.`);
+      return;
+    }
+
     setBookingLoading(true);
     setBookingError(null);
     try {
-      console.log('🚀 Calling eZee Booking API with payload:', payload);
-      const response = await axios.post('/ezee-api/booking/reservation_api/booking.php', payload);
-      console.log('✅ eZee Booking API Response:', response?.data);
+      console.log('🚀 Calling eZee InsertBooking API:');
+      console.log('HotelCode:', effectiveHotelCode);
+      console.log('APIKey:', effectiveApiKey ? `${effectiveApiKey.slice(0, 4)}...${effectiveApiKey.slice(-4)}` : '(EMPTY)');
+      console.log('BookingData:', bookingData);
+
+      // eZee listing.php requires POST with application/x-www-form-urlencoded
+      const formParams = new URLSearchParams();
+      formParams.append('request_type', 'InsertBooking');
+      formParams.append('HotelCode', String(effectiveHotelCode).trim());
+      formParams.append('APIKey', String(effectiveApiKey).trim());
+      formParams.append('BookingData', JSON.stringify(bookingData));
+
+      const url = `/ezee-api/booking/reservation_api/listing.php?request_type=InsertBooking&HotelCode=${encodeURIComponent(effectiveHotelCode)}&APIKey=${encodeURIComponent(effectiveApiKey)}`;
+
+      const response = await axios.post(url, formParams, {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded'
+        }
+      });
+      console.log('✅ eZee InsertBooking API Response:', response?.data);
       setBookingLoading(false);
 
-      const isApiSuccess =
-        response?.data?.success === true ||
-        response?.data?.success === 'true' ||
-        Boolean(
-          response?.data?.Booking_No ||
-          response?.data?.ReservationNo ||
-          response?.data?.reservation_no ||
-          response?.data?.booking_no ||
-          response?.data?.id
-        ) ||
-        (response?.data && !response?.data?.error && !response?.data?.Error && !response?.data?.Errors);
+      const data = response?.data;
+      let isError = false;
+      let errDetail = '';
 
-      if (isApiSuccess) {
+      if (Array.isArray(data) && data[0]?.['Error Details']) {
+        isError = true;
+        const eObj = data[0]['Error Details'];
+        errDetail = `${eObj.Error_Code}: ${eObj.Error_Message}`;
+      } else if (Array.isArray(data) && data[0]?.Error_Message) {
+        isError = true;
+        errDetail = data[0].Error_Message;
+      } else if (data?.error || data?.Error || data?.Errors) {
+        isError = true;
+        errDetail = data.error || data.Error || data.Errors;
+      } else if (typeof data === 'string' && (data.includes('Missing') || data.includes('Error') || data.includes('DENIED') || data.includes('UNAUTH') || data === '-1')) {
+        isError = true;
+        errDetail = data;
+      }
+
+      const hasReservation = Boolean(
+        data?.ReservationNo ||
+        data?.reservation_no ||
+        data?.SubReservationNo ||
+        data?.Booking_No ||
+        data?.id ||
+        (Array.isArray(data) && data[0]?.ReservationNo)
+      );
+
+      if (!isError && (hasReservation || data?.success)) {
         try {
           sessionStorage.removeItem('cobnb_pending_booking');
         } catch (_) {}
 
         navigate('/booking-confirmation', {
           state: {
-            booking: response?.data,
-            bookingPayload: payload,
+            booking: Array.isArray(data) ? data[0] : data,
+            bookingPayload,
+            bookingData,
             paymentData,
             room: pendingBooking?.room,
             hotelName: pendingBooking?.hotelName
           }
         });
       } else {
-        const errDetail =
-          response?.data?.error ||
-          response?.data?.Error ||
-          response?.data?.Errors ||
-          response?.data?.message ||
-          'Booking API could not confirm reservation.';
-        setBookingError(typeof errDetail === 'object' ? JSON.stringify(errDetail) : String(errDetail));
+        setBookingError(typeof errDetail === 'object' ? JSON.stringify(errDetail) : String(errDetail || 'eZee reservation API could not confirm booking.'));
       }
     } catch (err) {
       console.error('Booking failed:', err);
@@ -648,7 +805,7 @@ const PaymentReturn = () => {
                       Executing eZee Room Booking API...
                     </h4>
                     <p style={{ margin: 0, fontSize: '12px', color: 'var(--color-text-muted)' }}>
-                      POST to /ezee-api/booking/reservation_api/booking.php with bookingPayload
+                      POST /ezee-api/booking/reservation_api/listing.php?request_type=InsertBooking&HotelCode={resolvedHotelCode}...
                     </p>
                   </div>
                 </div>
@@ -699,6 +856,47 @@ const PaymentReturn = () => {
               )}
               {activeTab === 'summary' ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+                  {/* API Key Missing Notice & Input */}
+                  {!effectiveApiKey && (
+                    <div style={{
+                      background: 'rgba(239, 68, 68, 0.08)',
+                      border: '1px solid rgba(239, 68, 68, 0.25)',
+                      borderRadius: '12px',
+                      padding: '14px 16px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '8px'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Key size={16} color="#ef4444" />
+                        <span style={{ fontSize: '13px', fontWeight: 700, color: '#ef4444' }}>
+                          eZee API Key is missing for Hotel Code {effectiveHotelCode || 'N/A'}
+                        </span>
+                      </div>
+                      <p style={{ margin: 0, fontSize: '12px', color: 'var(--color-text-muted)' }}>
+                        {fetchingKey ? 'Searching API Key from Zoho Building records...' : 'eZee requires APIKey as a mandatory parameter. Enter the API Key below to proceed:'}
+                      </p>
+                      <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+                        <input
+                          type="text"
+                          value={apiKeyOverride}
+                          onChange={(e) => setApiKeyOverride(e.target.value.trim())}
+                          placeholder="Paste eZee API Key here..."
+                          style={{
+                            flex: 1,
+                            padding: '8px 12px',
+                            borderRadius: '6px',
+                            border: '1px solid var(--color-border)',
+                            background: 'var(--color-bg-secondary)',
+                            color: 'var(--color-text-main)',
+                            fontSize: '13px',
+                            outline: 'none'
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
+
                   {/* Property & Room Section */}
                   <div style={{ background: 'var(--color-bg-main)', border: '1px solid var(--color-border)', borderRadius: '12px', padding: '16px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', color: 'var(--color-text-muted)', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>
@@ -707,19 +905,37 @@ const PaymentReturn = () => {
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '12px' }}>
                       <div style={{ background: 'var(--color-bg-secondary)', padding: '10px 12px', borderRadius: '8px' }}>
                         <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', display: 'block' }}>Hotel Code</span>
-                        <strong style={{ fontSize: '13px', color: 'var(--color-text-main)' }}>{bookingPayload.hotelCode || 'N/A'}</strong>
+                        <strong style={{ fontSize: '13px', color: 'var(--color-text-main)' }}>{effectiveHotelCode || 'N/A'}</strong>
+                      </div>
+                      <div style={{ background: 'var(--color-bg-secondary)', padding: '10px 12px', borderRadius: '8px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>eZee API Key</span>
+                          <span style={{
+                            fontSize: '10px',
+                            fontWeight: 700,
+                            padding: '1px 6px',
+                            borderRadius: '4px',
+                            background: effectiveApiKey ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                            color: effectiveApiKey ? '#10b981' : '#ef4444'
+                          }}>
+                            {effectiveApiKey ? 'Loaded' : 'Missing'}
+                          </span>
+                        </div>
+                        <strong style={{ fontSize: '12px', color: effectiveApiKey ? 'var(--color-text-main)' : '#ef4444', fontFamily: 'monospace' }}>
+                          {effectiveApiKey ? `${effectiveApiKey.slice(0, 5)}...${effectiveApiKey.slice(-4)}` : 'Not provided'}
+                        </strong>
                       </div>
                       <div style={{ background: 'var(--color-bg-secondary)', padding: '10px 12px', borderRadius: '8px' }}>
                         <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', display: 'block' }}>Room Type ID</span>
-                        <strong style={{ fontSize: '13px', color: 'var(--color-text-main)' }}>{bookingPayload.roomTypeId || 'N/A'}</strong>
+                        <strong style={{ fontSize: '13px', color: 'var(--color-text-main)' }}>{effectiveRoomTypeId || 'N/A'}</strong>
                       </div>
                       <div style={{ background: 'var(--color-bg-secondary)', padding: '10px 12px', borderRadius: '8px' }}>
                         <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', display: 'block' }}>Rate Type ID</span>
-                        <strong style={{ fontSize: '13px', color: 'var(--color-text-main)' }}>{bookingPayload.rateTypeId || 'N/A'}</strong>
+                        <strong style={{ fontSize: '13px', color: 'var(--color-text-main)' }}>{effectiveRateTypeId || 'N/A'}</strong>
                       </div>
                       <div style={{ background: 'var(--color-bg-secondary)', padding: '10px 12px', borderRadius: '8px' }}>
-                        <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', display: 'block' }}>Room Rate ID</span>
-                        <strong style={{ fontSize: '13px', color: 'var(--color-text-main)' }}>{bookingPayload.roomRateId || 'N/A'}</strong>
+                        <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', display: 'block' }}>Room Rate ID (Rateplan)</span>
+                        <strong style={{ fontSize: '13px', color: 'var(--color-text-main)' }}>{effectiveRoomRateId || 'N/A'}</strong>
                       </div>
                     </div>
                   </div>
@@ -800,7 +1016,7 @@ const PaymentReturn = () => {
                 <div style={{ position: 'relative' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                     <span style={{ fontSize: '12px', color: 'var(--color-text-muted)', fontWeight: 600 }}>
-                      Raw JSON payload for /ezee-api/booking/reservation_api/booking.php
+                      BookingData JSON for /ezee-api/booking/reservation_api/listing.php (InsertBooking)
                     </span>
                     <button
                       type="button"
@@ -821,7 +1037,7 @@ const PaymentReturn = () => {
                       }}
                     >
                       {copied ? <Check size={14} /> : <Copy size={14} />}
-                      {copied ? 'Copied to Clipboard' : 'Copy Payload JSON'}
+                      {copied ? 'Copied to Clipboard' : 'Copy BookingData JSON'}
                     </button>
                   </div>
                   <pre style={{
@@ -836,7 +1052,7 @@ const PaymentReturn = () => {
                     overflowX: 'auto',
                     border: '1px solid #1e293b'
                   }}>
-                    {JSON.stringify(bookingPayload, null, 2)}
+                    {JSON.stringify(bookingData, null, 2)}
                   </pre>
                 </div>
               )}
@@ -855,7 +1071,7 @@ const PaymentReturn = () => {
             }}>
               <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
                 {bookingLoading
-                  ? 'Calling /ezee-api/booking/reservation_api/booking.php...'
+                  ? 'Calling /ezee-api/booking/reservation_api/listing.php?request_type=InsertBooking...'
                   : bookingError
                   ? 'Payment successful. Booking API error returned.'
                   : 'Payment successful. Press Make Booking to finalize.'}

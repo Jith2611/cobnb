@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import zohoAxios from '../../../utility/axiosInstance';
-import { 
+import {
   Search, MapPin, Star, MessageCircle, X, ChevronRight,
   Building, HeartHandshake, PaintBucket, Bed, Smartphone, Quote,
   ShieldCheck, Moon, Wifi, Tag
@@ -76,7 +76,7 @@ const GuestDashboard = () => {
   const [hotels, setHotels] = useState([]);
   const [loading, setLoading] = useState(false);
   const [userDetails, setUserDetails] = useState(null);
-  
+
   // Popup States
   const [popups, setPopups] = useState([]);
   const [activePopupIndex, setActivePopupIndex] = useState(0);
@@ -102,7 +102,7 @@ const GuestDashboard = () => {
       if (storedUser) {
         try {
           setUserDetails(typeof storedUser === 'string' ? JSON.parse(storedUser) : storedUser);
-        } catch (_) {}
+        } catch (_) { }
       }
 
       const isGuest = !Id || String(Id).startsWith('guest') || Id === 'finance-owner';
@@ -126,7 +126,7 @@ const GuestDashboard = () => {
       let hotelData = [];
       try {
         const hotelRes = await zohoAxios.get(
-          `/zoho-api/api/v2/brandontan18/housekeeping-system/report/All_Building_Report?Active=Active`,
+          `/zoho-api/api/v2/brandontan18/housekeeping-system/report/All_Building_Report?Active=Active?Booking_Engine_Active=true`,
           { headers: { Authorization: `Zoho-oauthtoken ${refreshToken}` } }
         );
         if (hotelRes?.data?.code === 3000 && Array.isArray(hotelRes.data.data)) {
@@ -139,13 +139,13 @@ const GuestDashboard = () => {
       if (hotelData.length === 0) {
         try {
           const fallbackRes = await zohoAxios.get(
-            `/zoho-api/api/v2/brandontan18/housekeeping-system/report/All_Building_Report?Mobile_App_Active=Active`,
+            `/zoho-api/api/v2/brandontan18/housekeeping-system/report/All_Building_Report?Booking_Engine_Active=true`,
             { headers: { Authorization: `Zoho-oauthtoken ${refreshToken}` } }
           );
           if (fallbackRes?.data?.code === 3000 && Array.isArray(fallbackRes.data.data)) {
             hotelData = fallbackRes.data.data;
           }
-        } catch (_) {}
+        } catch (_) { }
       }
 
       if (hotelData.length === 0) {
@@ -157,7 +157,7 @@ const GuestDashboard = () => {
           if (allRes?.data?.code === 3000 && Array.isArray(allRes.data.data)) {
             hotelData = allRes.data.data;
           }
-        } catch (_) {}
+        } catch (_) { }
       }
 
       if (hotelData.length > 0) {
@@ -275,7 +275,7 @@ const GuestDashboard = () => {
       const updated = [item, ...currentList.filter(b => b?.ID !== item?.ID)].slice(0, 10);
       setRecentlyViewed(updated);
       storeData('recentlyviewed', JSON.stringify(updated));
-    } catch (_) {}
+    } catch (_) { }
 
     if (hotelCode && apiKey) {
       navigate('/hotel-availability', {
@@ -308,7 +308,7 @@ const GuestDashboard = () => {
 
   return (
     <div className="dashboard-wrapper luxury-dashboard">
-      
+
       {/* Popups Modal */}
       {showPopup && popups.length > 0 && popups[activePopupIndex] && (
         <div style={{
@@ -318,7 +318,7 @@ const GuestDashboard = () => {
           backdropFilter: 'blur(8px)'
         }}>
           <div style={{ position: 'relative', maxWidth: '420px', width: '90%', animation: 'popIn 0.5s cubic-bezier(0.4, 0, 0.2, 1)' }}>
-            <button 
+            <button
               onClick={handleNextPopup}
               style={{
                 position: 'absolute', top: '-48px', right: 0,
@@ -328,8 +328,8 @@ const GuestDashboard = () => {
             >
               <X size={28} strokeWidth={1.5} />
             </button>
-            <img 
-              src={popups[activePopupIndex]?.Image} 
+            <img
+              src={popups[activePopupIndex]?.Image}
               alt="Promo"
               style={{ width: '100%', borderRadius: 'var(--radius-sm)', cursor: 'pointer', boxShadow: 'var(--shadow-hover)' }}
               onClick={() => handlePopupClick(popups[activePopupIndex])}
@@ -339,7 +339,7 @@ const GuestDashboard = () => {
       )}
 
       {/* Floating WhatsApp Button */}
-      <button 
+      <button
         onClick={handleWhatsApp}
         className="whatsapp-float-btn"
       >
@@ -353,7 +353,7 @@ const GuestDashboard = () => {
           <div className="hero-text" style={{ textAlign: 'center', margin: '0 auto', padding: '0 16px' }}>
             <h2 style={{ wordWrap: 'break-word' }}>Let Your Mind Travel</h2>
             <p style={{ margin: '0 auto', maxWidth: '90%' }}>Discover our curated luxury properties across Malaysia.</p>
-            
+
             {userDetails && (
               <div style={{ marginTop: '24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
                 <div style={{ fontSize: '18px', fontWeight: '600', color: 'var(--color-accent)' }}>
@@ -373,7 +373,7 @@ const GuestDashboard = () => {
             )}
           </div>
         </div>
-        
+
 
       </div>
 
@@ -404,15 +404,15 @@ const GuestDashboard = () => {
       <div className="section-container">
         <div className="section-header">
           <h3>Featured Properties</h3>
-          <span 
-            className="view-all" 
+          <span
+            className="view-all"
             onClick={() => navigate('/online-booking')}
             style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
           >
             Explore All <ChevronRight size={16} />
           </span>
         </div>
-        
+
         {loading && hotels.length === 0 ? (
           <div className="loading-state">
             <div className="spinner-dark"></div>
@@ -420,20 +420,20 @@ const GuestDashboard = () => {
         ) : (
           <div className="property-grid">
             {hotels.map((item, index) => {
-              const bgImg = item?.Mobile_App_Image?.value || 
-                item?.Mobile_App_Image?.url || 
+              const bgImg = item?.Mobile_App_Image?.value ||
+                item?.Mobile_App_Image?.url ||
                 (typeof item?.Mobile_App_Image === 'string' ? item.Mobile_App_Image : '');
 
               return (
-                <div 
-                  key={item?.ID || index} 
+                <div
+                  key={item?.ID || index}
                   className="property-card"
                   onClick={() => handleProceed(item)}
                   style={{ cursor: 'pointer' }}
                 >
-                  <div 
-                    className="property-image" 
-                    style={{ 
+                  <div
+                    className="property-image"
+                    style={{
                       backgroundImage: bgImg ? `url(${bgImg})` : 'none',
                       backgroundColor: 'var(--color-bg-secondary)'
                     }}
@@ -456,10 +456,10 @@ const GuestDashboard = () => {
 
       {/* Best Rates Promotional Section */}
       <div className="fade-in-up stagger-1" style={{ width: '100%', marginTop: '60px' }}>
-        <div style={{ 
-          position: 'relative', 
-          padding: '80px 40px', 
-          textAlign: 'center', 
+        <div style={{
+          position: 'relative',
+          padding: '80px 40px',
+          textAlign: 'center',
           overflow: 'hidden',
           boxShadow: 'var(--shadow-luxury)'
         }}>
@@ -488,12 +488,12 @@ const GuestDashboard = () => {
             <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: '20px', maxWidth: '600px', margin: '0 auto 48px auto', lineHeight: '1.6' }}>
               Get the best prices plus free Wi-Fi when you become a COBNB+ member.
             </p>
-            
+
             <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', marginBottom: '60px', flexWrap: 'wrap' }}>
               <button className="hover-lift" onClick={() => navigate('/profile')} style={{ backgroundColor: 'var(--color-accent)', color: '#111111', padding: '16px 40px', border: 'none', borderRadius: 'var(--radius-sm)', fontSize: '14px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '1px', cursor: 'pointer' }}>Join for Free</button>
               <button className="hover-lift" onClick={() => navigate('/login')} style={{ backgroundColor: 'transparent', color: '#ffffff', padding: '16px 40px', border: '1px solid #ffffff', borderRadius: 'var(--radius-sm)', fontSize: '14px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '1px', cursor: 'pointer' }}>Sign In</button>
             </div>
-            
+
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '32px', borderTop: '1px solid rgba(255,255,255,0.2)', paddingTop: '48px' }}>
               {[
                 { label: 'BEST RATE GUARANTEE', icon: <ShieldCheck size={28} /> },
@@ -549,7 +549,7 @@ const GuestDashboard = () => {
             <p style={{ color: 'var(--color-secondary)', opacity: 0.8, fontSize: '16px', lineHeight: '1.6', marginBottom: '32px', maxWidth: '480px' }}>
               Our property management mobile app allows you to stay connected to your rental business instantly. Get in touch with us now.
             </p>
-            <button 
+            <button
               onClick={() => window.open('https://onelink.to/w84afm', '_blank')}
               className="hover-lift"
               style={{ backgroundColor: 'var(--color-accent)', color: '#111111', border: 'none', padding: '14px 32px', borderRadius: 'var(--radius-sm)', fontSize: '14px', fontWeight: '700', letterSpacing: '1px', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '8px' }}
@@ -579,10 +579,10 @@ const GuestDashboard = () => {
           <div className="clients-marquee-track">
             {[...PARTNER_LOGOS, ...PARTNER_LOGOS].map((logo, index) => (
               <div key={index} className="clients-logo-item">
-                <img 
-                  src={logo.url} 
-                  alt={logo.name || 'Client & Partner'} 
-                  loading="lazy" 
+                <img
+                  src={logo.url}
+                  alt={logo.name || 'Client & Partner'}
+                  loading="lazy"
                 />
               </div>
             ))}
@@ -604,9 +604,9 @@ const GuestDashboard = () => {
         <div className="ota-partners-row">
           {OTA_PARTNERS.map((partner, index) => (
             <div key={index} className="ota-partner-card hover-lift">
-              <img 
-                src={partner.logo} 
-                alt={partner.name} 
+              <img
+                src={partner.logo}
+                alt={partner.name}
                 className="ota-partner-logo"
               />
               <span className="ota-partner-badge">{partner.badge}</span>
@@ -623,21 +623,21 @@ const GuestDashboard = () => {
             Discover what our property owners have to say about their experience maximizing rental yields with Cobnb.
           </p>
         </div>
-        
+
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '32px' }}>
           {[
             { name: 'Mr Wong', title: 'Regalia Residences Owner', text: "I never thought it was possible to get a more than 8% yield in my apartment. Thank you for showing us the way and helping us to manage our investment." },
             { name: 'Andrew Lim', title: 'Novum Owner', text: "I’m so happy I chose to work with CoBnB. From the initial consultation all the way through the apartment listing, the service I received was impeccable." },
             { name: 'En. Hafiz', title: 'Arte Mont Kiara Owner', text: "CoBnB marketing is really impressive. I have been listing my own unit for 4 months and could not have the same amount of booking revenue in what CoBnB did in 1 month." }
           ].map((testimonial, idx) => (
-            <div 
-              key={idx} 
-              className="hover-lift" 
-              style={{ 
+            <div
+              key={idx}
+              className="hover-lift"
+              style={{
                 background: 'linear-gradient(145deg, var(--color-secondary), var(--color-bg-secondary))',
-                padding: '48px 40px', 
-                borderRadius: '24px', 
-                border: '1px solid var(--color-border)', 
+                padding: '48px 40px',
+                borderRadius: '24px',
+                border: '1px solid var(--color-border)',
                 position: 'relative',
                 boxShadow: '0 20px 40px rgba(0,0,0,0.05)',
                 display: 'flex',
@@ -648,18 +648,18 @@ const GuestDashboard = () => {
               <div style={{ position: 'absolute', top: '32px', right: '32px', opacity: 0.05 }}>
                 <Quote size={80} fill="var(--color-primary)" color="transparent" />
               </div>
-              
+
               <div>
                 <div style={{ display: 'flex', gap: '6px', marginBottom: '32px' }}>
-                  {[1,2,3,4,5].map(star => <Star key={star} size={18} color="var(--color-accent)" fill="var(--color-accent)" />)}
+                  {[1, 2, 3, 4, 5].map(star => <Star key={star} size={18} color="var(--color-accent)" fill="var(--color-accent)" />)}
                 </div>
-                
-                <p style={{ 
-                  color: 'var(--color-text-main)', 
-                  fontSize: '17px', 
-                  lineHeight: '1.8', 
+
+                <p style={{
+                  color: 'var(--color-text-main)',
+                  fontSize: '17px',
+                  lineHeight: '1.8',
                   fontFamily: 'var(--font-heading)',
-                  fontStyle: 'italic', 
+                  fontStyle: 'italic',
                   marginBottom: '40px',
                   position: 'relative',
                   zIndex: 1
@@ -667,7 +667,7 @@ const GuestDashboard = () => {
                   "{testimonial.text}"
                 </p>
               </div>
-              
+
               <div style={{ display: 'flex', alignItems: 'center', gap: '16px', position: 'relative', zIndex: 1 }}>
                 <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: 'var(--color-bg-secondary)', border: '2px solid var(--color-accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-accent)', fontWeight: 'bold', fontSize: '18px' }}>
                   {testimonial.name.charAt(0)}
@@ -688,23 +688,23 @@ const GuestDashboard = () => {
           <h3 className="section-title">Recently Viewed</h3>
           <div className="horizontal-scroll hide-scrollbar">
             {recentlyViewed.map((item, idx) => {
-              const bgImg = item?.Mobile_App_Image?.value || 
-                item?.Mobile_App_Image?.url || 
+              const bgImg = item?.Mobile_App_Image?.value ||
+                item?.Mobile_App_Image?.url ||
                 (typeof item?.Mobile_App_Image === 'string' ? item.Mobile_App_Image : '');
 
               return (
-                <div 
-                  key={item?.ID || idx} 
-                  className="recent-card hover-lift" 
+                <div
+                  key={item?.ID || idx}
+                  className="recent-card hover-lift"
                   onClick={() => handleProceed(item)}
                   style={{ cursor: 'pointer' }}
                 >
-                  <div 
-                    className="recent-image" 
-                    style={{ 
-                      backgroundImage: bgImg ? `url(${bgImg})` : 'none', 
+                  <div
+                    className="recent-image"
+                    style={{
+                      backgroundImage: bgImg ? `url(${bgImg})` : 'none',
                       backgroundColor: 'var(--color-bg-secondary)',
-                      borderRadius: 'var(--radius-sm)' 
+                      borderRadius: 'var(--radius-sm)'
                     }}
                   ></div>
                   <div className="recent-name" style={{ color: 'var(--color-primary)', fontSize: '18px', fontWeight: '600' }}>
@@ -734,20 +734,21 @@ const GuestDashboard = () => {
             <a href="https://www.tiktok.com/@cobnb.malaysia?lang=en" target="_blank" rel="noopener noreferrer">TikTok</a>
           </div>
           <div style={{ marginBottom: '40px', color: 'inherit', opacity: 0.8, fontSize: '14px', lineHeight: '1.8', maxWidth: '400px', margin: '0 auto 40px auto' }}>
-            <img 
-              src="https://static.wixstatic.com/media/201a1b_b218982b63c849f98d3165723606121d~mv2_d_6796_3863_s_4_2.png/v1/crop/x_65,y_0,w_6731,h_3863/fill/w_422,h_238,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/logo%20with%20TM.png" 
-              alt="COBNB Logo" 
+            <img
+              src="https://static.wixstatic.com/media/201a1b_b218982b63c849f98d3165723606121d~mv2_d_6796_3863_s_4_2.png/v1/crop/x_65,y_0,w_6731,h_3863/fill/w_422,h_238,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/logo%20with%20TM.png"
+              alt="COBNB Logo"
               style={{ height: '40px', objectFit: 'contain', margin: '0 auto 20px auto', display: 'block' }}
             />
             <div>+6010-271 5288</div>
             <div>ask@cobnb.com.my</div>
-            <div style={{ marginTop: '8px' }}>100 A - 100 C, Jalan Imbi, WP, 55100 Kuala Lumpur,<br/>Wilayah Persekutuan Kuala Lumpur</div>
+            <div style={{ marginTop: '8px' }}>100 A - 100 C, Jalan Imbi, WP, 55100 Kuala Lumpur,<br />Wilayah Persekutuan Kuala Lumpur</div>
           </div>
           <p className="copyright">&copy; {new Date().getFullYear()} Cobnb Malaysia. All rights reserved.</p>
         </div>
       </footer>
 
-      <style dangerouslySetInnerHTML={{__html: `
+      <style dangerouslySetInnerHTML={{
+        __html: `
         .luxury-dashboard {
           padding-bottom: 0 !important;
           background-color: var(--color-bg-secondary);

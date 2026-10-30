@@ -305,7 +305,7 @@ const HotelAvailability = () => {
 
     const ezeeUrl = `/ezee-api/booking/reservation_api/listing.php?request_type=RoomList&HotelCode=${hotelCode}&APIKey=${apiKey}&check_in_date=${check_in_date}&check_out_date=${check_out_date}&number_adults=${number_adults}&number_children=${number_children}&num_rooms=${num_rooms}&property_configuration_info=0&showtax=1&show_only_available_rooms=1&language=en&packagefor=DESKTOP&promotionfor=DESKTOP`;
     const zohoReportUrl = `/zoho-api/api/v2/brandontan18/housekeeping-system/report/Room_Type_Mapping_Report`;
-    const buildingReportUrl = `/zoho-api/api/v2/brandontan18/housekeeping-system/report/All_Building_Report?Active=Active`;
+    const buildingReportUrl = `/zoho-api/api/v2/brandontan18/housekeeping-system/report/All_Building_Report?Active=Active?Booking_Engine_Active=true`;
 
     try {
       // Fetch eZee (availability & price), Zoho room mapping, and Zoho building report concurrently
@@ -339,7 +339,7 @@ const HotelAvailability = () => {
       try {
         const currentStored = JSON.parse(sessionStorage.getItem('cobnb_hotel_selection') || '{}');
         sessionStorage.setItem('cobnb_hotel_selection', JSON.stringify({ ...currentStored, buildingImage: mobileAppImage }));
-      } catch (_) {}
+      } catch (_) { }
 
       // Parse eZee data
       let ezeeRooms = [];
@@ -752,7 +752,7 @@ const HotelAvailability = () => {
                 min={getTodayYMD()}
                 value={searchParams.check_in_date}
                 onChange={handleInputChange}
-                onClick={(e) => { try { e.target.showPicker(); } catch (_) {} }}
+                onClick={(e) => { try { e.target.showPicker(); } catch (_) { } }}
                 style={{
                   padding: '10px 14px',
                   borderRadius: '8px',
@@ -776,7 +776,7 @@ const HotelAvailability = () => {
                 min={addDaysToDateString(searchParams.check_in_date, 1)}
                 value={searchParams.check_out_date}
                 onChange={handleInputChange}
-                onClick={(e) => { try { e.target.showPicker(); } catch (_) {} }}
+                onClick={(e) => { try { e.target.showPicker(); } catch (_) { } }}
                 style={{
                   padding: '10px 14px',
                   borderRadius: '8px',

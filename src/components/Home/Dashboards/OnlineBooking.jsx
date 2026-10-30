@@ -26,7 +26,7 @@ const OnlineBooking = () => {
       setLoading(true);
       const refreshToken = await getData('refreshToken');
       const res = await zohoAxios.get(
-        `/zoho-api/api/v2/brandontan18/housekeeping-system/report/All_Building_Report?Active=Active`,
+        `/zoho-api/api/v2/brandontan18/housekeeping-system/report/All_Building_Report?Active=Active&Booking_Engine_Active=true`,
         { headers: { Authorization: `Zoho-oauthtoken ${refreshToken}` } }
       );
       if (res?.data && res.data.code === 3000) {
@@ -206,8 +206,8 @@ const OnlineBooking = () => {
         ) : (
           <div className="property-grid">
             {filteredBuildings.map((item, index) => {
-              const bgImg = item?.Mobile_App_Image?.value || 
-                item?.Mobile_App_Image?.url || 
+              const bgImg = item?.Mobile_App_Image?.value ||
+                item?.Mobile_App_Image?.url ||
                 (typeof item?.Mobile_App_Image === 'string' ? item.Mobile_App_Image : '');
 
               return (
