@@ -251,7 +251,7 @@ const PaymentReturn = () => {
       navigator.clipboard.writeText(JSON.stringify(bookingData, null, 2));
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch (_) {}
+    } catch (_) { }
   };
 
   // Call eZee InsertBooking API on Make Booking button press
@@ -315,23 +315,50 @@ const PaymentReturn = () => {
         errDetail = data;
       }
 
-      const hasReservation = Boolean(
-        data?.ReservationNo ||
+      const resNumber = data?.ReservationNo ||
+        (Array.isArray(data) && data[0]?.ReservationNo) ||
         data?.reservation_no ||
-        data?.SubReservationNo ||
+        data?.SubReservationNo?.[0] ||
         data?.Booking_No ||
-        data?.id ||
-        (Array.isArray(data) && data[0]?.ReservationNo)
-      );
+        data?.id;
+
+      const hasReservation = Boolean(resNumber);
 
       if (!isError && (hasReservation || data?.success)) {
+        // When payment is captured, auto-confirm the reservation to mark it as Paid & Confirmed in eZee PMS (same as RES14735)
+        let confirmedBookingData = Array.isArray(data) ? data[0] : data;
+        if (resNumber && isSuccess) {
+          try {
+            const inventoryMode = data?.Inventory_Mode || (Array.isArray(data) && data[0]?.Inventory_Mode) || 'REGULAR';
+            const processData = {
+              Action: 'ConfirmBooking',
+              ReservationNo: String(resNumber),
+              Inventory_Mode: String(inventoryMode),
+              Error_Text: ''
+            };
+            const processUrl = `/ezee-api/booking/reservation_api/listing.php?request_type=ProcessBooking&HotelCode=${encodeURIComponent(effectiveHotelCode)}&APIKey=${encodeURIComponent(effectiveApiKey)}&Process_Data=${encodeURIComponent(JSON.stringify(processData))}`;
+            const processRes = await axios.get(processUrl);
+            console.log('✅ eZee ProcessBooking (Auto-Confirmed & Paid) Response:', processRes?.data);
+            confirmedBookingData = {
+              ...confirmedBookingData,
+              ReservationNo: resNumber,
+              ReservationGuarantee: 'Confirm Booking',
+              Confirmed_Type: '1',
+              isPaid: true,
+              paymentStatus: 'PAID'
+            };
+          } catch (procErr) {
+            console.warn('⚠️ eZee ProcessBooking confirmation notice:', procErr);
+          }
+        }
+
         try {
           sessionStorage.removeItem('cobnb_pending_booking');
-        } catch (_) {}
+        } catch (_) { }
 
         navigate('/booking-confirmation', {
           state: {
-            booking: Array.isArray(data) ? data[0] : data,
+            booking: confirmedBookingData,
             bookingPayload,
             bookingData,
             paymentData,
@@ -372,7 +399,7 @@ const PaymentReturn = () => {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--color-bg-main)', padding: '100px 24px 60px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      
+
       {/* Background Page Content */}
       <div style={{
         maxWidth: '560px',
@@ -1073,8 +1100,8 @@ const PaymentReturn = () => {
                 {bookingLoading
                   ? 'Calling /ezee-api/booking/reservation_api/listing.php?request_type=InsertBooking...'
                   : bookingError
-                  ? 'Payment successful. Booking API error returned.'
-                  : 'Payment successful. Press Make Booking to finalize.'}
+                    ? 'Payment successful. Booking API error returned.'
+                    : 'Payment successful. Press Make Booking to finalize.'}
               </span>
               <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                 <button

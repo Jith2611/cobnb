@@ -140,6 +140,16 @@ zohoAxios.interceptors.response.use(
       }
     }
 
+    // Retry once on transient proxy / 502 / network error
+    const isProxyOrNetworkError =
+      !error?.response || error?.response?.status === 502 || error?.response?.status === 504;
+
+    if (isProxyOrNetworkError && originalRequest && !originalRequest._networkRetried) {
+      originalRequest._networkRetried = true;
+      await new Promise((res) => setTimeout(res, 400));
+      return zohoAxios(originalRequest);
+    }
+
     return Promise.reject(error);
   }
 );

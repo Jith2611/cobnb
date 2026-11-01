@@ -899,6 +899,19 @@ const HotelCheckout = () => {
                     <span style={{ fontWeight: 500 }}>{currencySign} {subtotal}</span>
                   </div>
 
+                  {room?.dailyRates && room.dailyRates.length > 0 && (
+                    <div style={{ padding: '8px 10px', background: 'var(--color-bg-main)', borderRadius: '8px', border: '1px solid var(--color-border)', fontSize: '11px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <span style={{ fontWeight: 600, color: 'var(--color-text-main)' }}>Daily Rates:</span>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                        {room.dailyRates.map((d, i) => (
+                          <span key={i} style={{ color: 'var(--color-text-muted)' }}>
+                            {d.date}: <strong style={{ color: 'var(--color-accent)' }}>{currencySign} {d.baseRateStr || d.rate}</strong>
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   {promoApplied && appliedPromoData && (
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#10b981', fontWeight: 600 }}>
                       <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>

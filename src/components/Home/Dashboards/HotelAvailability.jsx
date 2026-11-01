@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import zohoAxios from '../../../utility/axiosInstance';
-import { ArrowLeft, Search, Users, Bed, Check, ChevronLeft, ChevronRight, X, Sparkles, Building2, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Search, Users, Bed, Check, ChevronLeft, ChevronRight, X, Sparkles, Building2, AlertCircle, Calendar } from 'lucide-react';
 
 const ImageSlider = ({ images, mobileAppImage, hotelImage, onImageClick }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -16,15 +16,20 @@ const ImageSlider = ({ images, mobileAppImage, hotelImage, onImageClick }) => {
 
   const effectiveImages = validImages.length > 0 ? validImages : (fallback ? [fallback] : []);
   const safeIndex = currentIndex < effectiveImages.length ? currentIndex : 0;
-  const currentImg = effectiveImages[safeIndex] || fallback || '';
 
   const nextSlide = (e) => {
-    e.stopPropagation();
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     setCurrentIndex((prev) => (prev === effectiveImages.length - 1 ? 0 : prev + 1));
   };
 
   const prevSlide = (e) => {
-    e.stopPropagation();
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     setCurrentIndex((prev) => (prev === 0 ? effectiveImages.length - 1 : prev - 1));
   };
 
@@ -40,44 +45,139 @@ const ImageSlider = ({ images, mobileAppImage, hotelImage, onImageClick }) => {
         background: 'var(--color-bg-secondary)'
       }}
     >
-      <img
-        src={currentImg || fallback}
-        alt="Room"
-        loading="lazy"
-        onError={(e) => {
-          if (fallback && e.target.src !== fallback) {
-            e.target.src = fallback;
-          }
-        }}
+      {/* Horizontal Sliding Track */}
+      <div
         style={{
-          width: '100%',
+          display: 'flex',
           height: '100%',
-          objectFit: 'cover',
-          display: 'block',
-          transition: 'transform 0.4s ease'
+          width: `${effectiveImages.length * 100}%`,
+          transform: `translateX(-${(safeIndex * 100) / effectiveImages.length}%)`,
+          transition: 'transform 0.35s cubic-bezier(0.25, 1, 0.5, 1)'
         }}
-        onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
-        onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
-      />
+      >
+        {effectiveImages.map((imgUrl, idx) => (
+          <div
+            key={idx}
+            style={{
+              width: `${100 / effectiveImages.length}%`,
+              height: '100%',
+              flexShrink: 0,
+              position: 'relative',
+              overflow: 'hidden'
+            }}
+          >
+            <img
+              src={imgUrl}
+              alt={`Room view ${idx + 1}`}
+              loading="lazy"
+              onError={(e) => {
+                if (fallback && e.target.src !== fallback) {
+                  e.target.src = fallback;
+                }
+              }}
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                display: 'block',
+                transition: 'transform 0.4s ease'
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
+            />
+          </div>
+        ))}
+      </div>
 
+      {/* Prev / Next controls */}
       {effectiveImages.length > 1 && (
         <>
           <button
             type="button"
             onClick={prevSlide}
-            style={{ position: 'absolute', top: '50%', left: '8px', transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)', border: 'none', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'white', padding: 0, zIndex: 2 }}
+            onMouseDown={(e) => e.stopPropagation()}
+            aria-label="Previous image"
+            style={{
+              position: 'absolute',
+              top: '50%',
+              left: '8px',
+              transform: 'translateY(-50%)',
+              background: 'rgba(0,0,0,0.65)',
+              backdropFilter: 'blur(4px)',
+              border: 'none',
+              borderRadius: '50%',
+              width: '32px',
+              height: '32px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              color: 'white',
+              padding: 0,
+              zIndex: 10,
+              transition: 'all 0.2s',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.4)'
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(0,0,0,0.85)'; e.currentTarget.style.transform = 'translateY(-50%) scale(1.1)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(0,0,0,0.65)'; e.currentTarget.style.transform = 'translateY(-50%) scale(1)'; }}
           >
             <ChevronLeft size={20} />
           </button>
+
           <button
             type="button"
             onClick={nextSlide}
-            style={{ position: 'absolute', top: '50%', right: '8px', transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)', border: 'none', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'white', padding: 0, zIndex: 2 }}
+            onMouseDown={(e) => e.stopPropagation()}
+            aria-label="Next image"
+            style={{
+              position: 'absolute',
+              top: '50%',
+              right: '8px',
+              transform: 'translateY(-50%)',
+              background: 'rgba(0,0,0,0.65)',
+              backdropFilter: 'blur(4px)',
+              border: 'none',
+              borderRadius: '50%',
+              width: '32px',
+              height: '32px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              color: 'white',
+              padding: 0,
+              zIndex: 10,
+              transition: 'all 0.2s',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.4)'
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(0,0,0,0.85)'; e.currentTarget.style.transform = 'translateY(-50%) scale(1.1)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(0,0,0,0.65)'; e.currentTarget.style.transform = 'translateY(-50%) scale(1)'; }}
           >
             <ChevronRight size={20} />
           </button>
-          <div style={{ position: 'absolute', bottom: '8px', left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: '4px', background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(6px)', padding: '4px 10px', borderRadius: '12px', zIndex: 2 }}>
-            <span style={{ color: 'white', fontSize: '11px', fontWeight: 'bold' }}>{safeIndex + 1} / {effectiveImages.length}</span>
+
+          {/* Dots and Counter indicator */}
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              position: 'absolute',
+              bottom: '8px',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              background: 'rgba(0,0,0,0.65)',
+              backdropFilter: 'blur(6px)',
+              padding: '4px 10px',
+              borderRadius: '12px',
+              zIndex: 10,
+              pointerEvents: 'none'
+            }}
+          >
+            <span style={{ color: 'white', fontSize: '11px', fontWeight: 'bold' }}>
+              {safeIndex + 1} / {effectiveImages.length}
+            </span>
           </div>
         </>
       )}
@@ -102,6 +202,23 @@ const addDaysToDateString = (ymdString, days = 1) => {
   const date = new Date(year, month - 1, day);
   date.setDate(date.getDate() + days);
   return formatDateToYMD(date);
+};
+
+// Generates an array of stay night dates from check-in up to (not including) check-out date
+const getNightDates = (checkInStr, checkOutStr) => {
+  if (!checkInStr || !checkOutStr) return [];
+  const dates = [];
+  const partsIn = checkInStr.split('-').map(Number);
+  const partsOut = checkOutStr.split('-').map(Number);
+  if (partsIn.length !== 3 || partsOut.length !== 3) return [];
+  const curr = new Date(partsIn[0], partsIn[1] - 1, partsIn[2]);
+  const end = new Date(partsOut[0], partsOut[1] - 1, partsOut[2]);
+
+  while (curr < end) {
+    dates.push(formatDateToYMD(curr));
+    curr.setDate(curr.getDate() + 1);
+  }
+  return dates;
 };
 
 const getTodayYMD = () => formatDateToYMD(new Date());
@@ -163,6 +280,31 @@ const HotelAvailability = () => {
   );
   const [amenitiesModalData, setAmenitiesModalData] = useState(null);
   const [unitImagesData, setUnitImagesData] = useState([]);
+  const [cobnbRatePlans, setCobnbRatePlans] = useState([]);
+  const [availableRateDateRange, setAvailableRateDateRange] = useState(null);
+
+  // Fetch summary of All_Cobnb_Rate_Plans on load to determine available date ranges
+  useEffect(() => {
+    const fetchAllCobnbRatePlans = async () => {
+      try {
+        const ratePlansUrl = `/zoho-api/api/v2/brandontan18/housekeeping-system/report/All_Cobnb_Rate_Plans?limit=200`;
+        console.log(`📡 [HotelAvailability] Initial check: report/All_Cobnb_Rate_Plans`);
+        const res = await zohoAxios.get(ratePlansUrl);
+        const plans = Array.isArray(res?.data?.data) ? res.data.data : [];
+        if (plans.length > 0) {
+          const dates = plans.map(p => p.Date_field).filter(Boolean).sort();
+          if (dates.length > 0) {
+            setAvailableRateDateRange({ min: dates[0], max: dates[dates.length - 1], count: plans.length });
+          }
+        }
+        setCobnbRatePlans(plans);
+      } catch (err) {
+        console.error('Error fetching All_Cobnb_Rate_Plans summary:', err);
+      }
+    };
+
+    fetchAllCobnbRatePlans();
+  }, []);
 
   const handleOpenPreview = (images, index, title) => {
     if (!images || images.length === 0) {
@@ -287,16 +429,24 @@ const HotelAvailability = () => {
     }
   };
 
-  const checkAvailability = async (e) => {
-    if (e) e.preventDefault();
+  const checkAvailability = async (e, overrideDates = null) => {
+    if (e && e.preventDefault) e.preventDefault();
     if (!hotelCode || !apiKey) return;
 
     let { check_in_date, check_out_date, number_adults, number_children, num_rooms } = searchParams;
+    if (overrideDates?.check_in_date) {
+      check_in_date = overrideDates.check_in_date;
+    }
+    if (overrideDates?.check_out_date) {
+      check_out_date = overrideDates.check_out_date;
+    }
     if (!check_in_date) {
       check_in_date = getTodayYMD();
     }
     if (!check_out_date || check_out_date <= check_in_date) {
       check_out_date = addDaysToDateString(check_in_date, 1);
+    }
+    if (overrideDates) {
       setSearchParams(prev => ({ ...prev, check_in_date, check_out_date }));
     }
 
@@ -464,9 +614,35 @@ const HotelAvailability = () => {
         }
       }
 
+      // ── Fetch All_Cobnb_Rate_Plans filtered by Building_Name.ID & Date Range criteria ──
+      // Zoho Creator criteria syntax: (Building_Name == <BuildingID> && Date_field >= "<StartDate>" && Date_field <= "<EndDate>")
+      let buildingRatePlans = [];
+      if (mappingBuildingId) {
+        try {
+          const rateCriteria = `(Building_Name == ${mappingBuildingId} && Date_field >= "${check_in_date}" && Date_field <= "${check_out_date}")`;
+          const ratePlansUrl = `/zoho-api/api/v2/brandontan18/housekeeping-system/report/All_Cobnb_Rate_Plans?criteria=${encodeURIComponent(rateCriteria)}`;
+          console.log(`📡 [HotelAvailability] Calling: report/All_Cobnb_Rate_Plans?criteria=${rateCriteria}`);
+          const ratePlansRes = await zohoAxios.get(ratePlansUrl);
+          buildingRatePlans = Array.isArray(ratePlansRes?.data?.data) ? ratePlansRes.data.data : [];
+          console.group('%c💰 [All_Cobnb_Rate_Plans] Date-Filtered Rates', 'color: #8b5cf6; font-size: 14px; font-weight: bold;');
+          console.log('Query Criteria:', rateCriteria);
+          console.log('API URL:', ratePlansUrl);
+          console.log('Building ID:', mappingBuildingId);
+          console.log('Date Range Filter:', `${check_in_date} to ${check_out_date}`);
+          console.log('Rate Plans Count:', buildingRatePlans.length);
+          console.log('Rate Plans Records:', buildingRatePlans);
+          console.groupEnd();
+          setCobnbRatePlans(buildingRatePlans);
+        } catch (rateErr) {
+          console.group('%cℹ️ [All_Cobnb_Rate_Plans] Date Filter', 'color: #6366f1; font-size: 13px;');
+          console.log('No rate plans matched current date range:', rateErr?.response?.data || rateErr?.message);
+          console.groupEnd();
+        }
+      }
+
       // Now combine the rooms:
       // Show room information from Zoho Creator report/Room_Type_Mapping_Report,
-      // and only pull room availability and price from eZee!
+      // and calculate pricing from Zoho All_Cobnb_Rate_Plans (or eZee fallback)!
       let combinedRooms = [];
 
       if (zohoMappings.length > 0) {
@@ -482,8 +658,48 @@ const HotelAvailability = () => {
           // 1. Availability from eZee
           const availableRooms = matchedEzee ? (Number(matchedEzee.min_ava_rooms) || 0) : 0;
 
-          // 2. Price from eZee
-          const price = matchedEzee?.room_rates_info?.totalprice_inclusive_all || matchedEzee?.room_rates_info?.rack_rate || null;
+          // 2. Stay nights calculation (e.g. check-in: 2027-01-27, check-out: 2027-01-29 => nights: 2027-01-27, 2027-01-28)
+          const stayNights = getNightDates(check_in_date, check_out_date);
+
+          // 3. Match Zoho All_Cobnb_Rate_Plans records for this room and each night of stay
+          const roomRatesForStay = [];
+          stayNights.forEach(nightDate => {
+            const matchedPlan = buildingRatePlans.find(rp => {
+              const rpRoomId = rp['Room_Type.ID'] || rp.Room_Type?.ID;
+              const rpRoomName = rp.Room_Type?.display_value;
+              const idMatch = rpRoomId && String(rpRoomId).trim() === String(zRoom.ID).trim();
+              const nameMatch = rpRoomName && (
+                (zRoom.Title && rpRoomName.trim().toLowerCase() === zRoom.Title.trim().toLowerCase()) ||
+                (zRoom.Room_Type && rpRoomName.trim().toLowerCase() === zRoom.Room_Type.trim().toLowerCase()) ||
+                (zRoom.Ezee_Room_Type && rpRoomName.trim().toLowerCase() === zRoom.Ezee_Room_Type.trim().toLowerCase())
+              );
+              return (idMatch || nameMatch) && rp.Date_field === nightDate;
+            });
+
+            if (matchedPlan) {
+              roomRatesForStay.push({
+                date: nightDate,
+                rate: parseFloat(matchedPlan.Base_Rate) || 0,
+                baseRateStr: matchedPlan.Base_Rate,
+                planId: matchedPlan.ID,
+                roomType: matchedPlan.Room_Type?.display_value || ''
+              });
+            }
+          });
+
+          // Compute Zoho Base Rate total for the stay
+          let zohoTotalPrice = null;
+          let zohoAvgPrice = null;
+          if (roomRatesForStay.length > 0) {
+            zohoTotalPrice = roomRatesForStay.reduce((sum, r) => sum + r.rate, 0);
+            zohoAvgPrice = (zohoTotalPrice / roomRatesForStay.length).toFixed(2);
+          }
+
+          // Effective Price:
+          // 1. If Zoho Rate Plan has rates for the stay, prioritize Zoho Base Rate!
+          // 2. Otherwise fall back to eZee price
+          const ezeePrice = matchedEzee?.room_rates_info?.totalprice_inclusive_all || matchedEzee?.room_rates_info?.rack_rate || null;
+          const price = zohoTotalPrice !== null ? zohoTotalPrice.toFixed(2) : ezeePrice;
           const currencySign = matchedEzee?.currency_sign || 'RM';
 
           // 3. Room Information strictly from Zoho Creator:
@@ -611,7 +827,17 @@ const HotelAvailability = () => {
             currency_sign: currencySign,
             max_adult_occupancy: adults,
             max_child_occupancy: children,
-            room_rates_info: matchedEzee?.room_rates_info || (price ? { totalprice_inclusive_all: price } : null),
+            dailyRates: roomRatesForStay,
+            hasZohoRates: roomRatesForStay.length > 0,
+            zohoTotalPrice: zohoTotalPrice !== null ? zohoTotalPrice.toFixed(2) : null,
+            zohoAvgPrice: zohoAvgPrice,
+            stayNightCount: stayNights.length,
+            room_rates_info: {
+              ...(matchedEzee?.room_rates_info || {}),
+              totalprice_inclusive_all: price,
+              daily_rates: roomRatesForStay,
+              zoho_rate_plan: roomRatesForStay.length > 0
+            },
             rawZoho: zRoom,
             rawEzee: matchedEzee
           };
@@ -899,21 +1125,54 @@ const HotelAvailability = () => {
                       )}
                     </div>
 
-                    {/* Live Price from eZee */}
+                    {/* Live Price linked from Zoho Rate Plans or eZee */}
                     <div style={{ textAlign: 'right', flexShrink: 0 }}>
                       <div style={{ fontSize: '22px', fontWeight: '800', color: 'var(--color-accent)', fontFamily: 'var(--font-heading)' }}>
                         {price ? `${room.currency_sign || 'RM'} ${price}` : 'Price on request'}
                       </div>
                       <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase', marginTop: '2px', letterSpacing: '0.5px' }}>
-                        {price ? 'Total Price' : 'Rates'}
+                        {room.hasZohoRates ? (
+                          <span style={{ color: '#10b981', fontWeight: 700 }}>
+                            ({room.stayNightCount} night{room.stayNightCount > 1 ? 's' : ''})
+                          </span>
+                        ) : (
+                          <span>{price ? 'Total Price' : 'Rates'}</span>
+                        )}
                       </div>
+                      {room.zohoAvgPrice && room.stayNightCount > 1 && (
+                        <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginTop: '2px', fontWeight: 500 }}>
+                          ~{room.currency_sign || 'RM'} {room.zohoAvgPrice} / night
+                        </div>
+                      )}
                     </div>
                   </div>
 
                   {/* Description from Zoho */}
-                  <p style={{ color: 'var(--color-text-muted)', fontSize: '13px', lineHeight: '1.6', margin: '0 0 20px 0', flex: 1 }}>
+                  <p style={{ color: 'var(--color-text-muted)', fontSize: '13px', lineHeight: '1.6', margin: '0 0 16px 0', flex: 1 }}>
                     {room.Room_Description}
                   </p>
+
+                  {/* Daily Rate Breakdown linked with date and room */}
+                  {room.dailyRates && room.dailyRates.length > 0 && (
+                    <div style={{ marginBottom: '16px', padding: '12px 14px', background: 'rgba(59, 130, 246, 0.05)', borderRadius: '12px', border: '1px solid rgba(59, 130, 246, 0.2)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                        <span style={{ fontSize: '12px', fontWeight: '700', color: 'var(--color-text-main)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <Calendar size={14} color="#3b82f6" /> Daily Rates ({room.dailyRates.length} night{room.dailyRates.length > 1 ? 's' : ''})
+                        </span>
+                        <span style={{ fontSize: '11px', color: '#3b82f6', fontWeight: '600', background: 'rgba(59, 130, 246, 0.1)', padding: '2px 8px', borderRadius: '10px' }}>
+                          Linked to Room
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                        {room.dailyRates.map((d, dIdx) => (
+                          <div key={dIdx} style={{ background: 'var(--color-bg-main)', padding: '6px 10px', borderRadius: '8px', border: '1px solid var(--color-border)', fontSize: '12px', display: 'flex', gap: '6px', alignItems: 'center' }}>
+                            <span style={{ color: 'var(--color-text-muted)' }}>{d.date}:</span>
+                            <strong style={{ color: 'var(--color-accent)' }}>{room.currency_sign || 'RM'} {d.baseRateStr || d.rate}</strong>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Room Key Stats (Availability from eZee) */}
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px', background: 'var(--color-bg-main)', padding: '14px 16px', borderRadius: '12px', border: '1px solid var(--color-border)' }}>
@@ -991,6 +1250,9 @@ const HotelAvailability = () => {
                               Roomtype_Name: room.Roomtype_Name,
                               room_main_image: room.room_main_image,
                               RoomImages: room.RoomImages,
+                              dailyRates: room.dailyRates,
+                              hasZohoRates: room.hasZohoRates,
+                              zohoTotalPrice: room.zohoTotalPrice,
                               room_rates_info: room.room_rates_info || { totalprice_inclusive_all: price },
                               currency_sign: room.currency_sign
                             },
