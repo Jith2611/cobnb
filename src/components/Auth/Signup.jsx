@@ -92,7 +92,16 @@ const Signup = () => {
         { headers: { Authorization: `Bearer ${tokenResponse.access_token}` } }
       );
 
-      const { email, given_name } = userInfo.data;
+      const rawEmail = userInfo?.data?.email || '';
+      const email = rawEmail.trim().toLowerCase();
+      const givenName = userInfo?.data?.given_name || userInfo?.data?.name?.split(' ')?.[0] || 'Guest';
+      const familyName = userInfo?.data?.family_name || userInfo?.data?.name?.split(' ')?.slice(1).join(' ') || '';
+
+      if (!email) {
+        setErrorMsg('Unable to retrieve email from Google.');
+        setLoading(false);
+        return;
+      }
 
       let user = null;
       let userFound = false;
@@ -108,7 +117,7 @@ const Signup = () => {
           console.log('Code 3100: No Data Available, proceeding to auto-signup');
         }
       } catch (err) {
-        console.log('User not found, proceeding to signup', err);
+        console.log('User query error, proceeding to signup/verification', err);
       }
 
       if (userFound && user) {
@@ -136,23 +145,24 @@ const Signup = () => {
           await checkOwnerOrAgent(email, 'google', user);
         }
       } else {
-        await autoSignup(email, given_name);
+        await autoSignup(email, givenName, familyName);
       }
     } catch (error) {
       console.error('Google login error', error);
-      setErrorMsg('Google Login failed.');
+      setErrorMsg(error?.response?.data?.message || error?.message || 'Google Login failed.');
       setLoading(false);
     }
   };
 
-  const autoSignup = async (email, firstName) => {
+  const autoSignup = async (email, firstName, lastName) => {
     try {
       const params = {
         data: {
           member_email: email,
           Points: "0",
           Guest_Name: {
-            first_name: firstName || " ",
+            first_name: firstName || "Guest",
+            last_name: lastName || ""
           },
           member_level: "Silver",
           Key: "google",
@@ -161,30 +171,92 @@ const Signup = () => {
         }
       };
 
-      const res = await zohoAxios.post(
-        `/zoho-api/api/v2/brandontan18/housekeeping-system/form/loyalty_members`,
-        params
-      );
+      let res;
+      try {
+        res = await zohoAxios.post(
+          `/zoho-api/api/v2/brandontan18/housekeeping-system/form/loyalty_members`,
+          params
+        );
+      } catch (postErr) {
+        console.error('Zoho signup post error:', postErr);
+        if (postErr?.response?.data?.code === 3002) {
+          res = postErr.response;
+        } else {
+          throw postErr;
+        }
+      }
 
       if (res?.data?.code === 3000) {
-        const newId = res.data.data.ID;
-        const fetchRes = await zohoAxios.get(
-          `/zoho-api/api/v2/brandontan18/housekeeping-system/report/loyalty_members_Report/${newId}`
-        );
-        if (fetchRes?.data?.code === 3000) {
-          const newUser = fetchRes.data.data;
-          await checkOwnerOrAgent(email, 'google', newUser);
-        } else {
-          setErrorMsg('Signup successful but could not auto-login.');
-          setLoading(false);
+        const newId = res?.data?.data?.ID;
+        let newUser = null;
+        if (newId) {
+          try {
+            const fetchRes = await zohoAxios.get(
+              `/zoho-api/api/v2/brandontan18/housekeeping-system/report/loyalty_members_Report/${newId}`
+            );
+            if (fetchRes?.data?.code === 3000 && fetchRes?.data?.data) {
+              newUser = fetchRes.data.data;
+            }
+          } catch (fetchErr) {
+            console.warn('Could not fetch new user by ID, using fallback object', fetchErr);
+          }
         }
-      } else {
-        setErrorMsg('Auto-signup failed.');
-        setLoading(false);
+
+        if (!newUser) {
+          newUser = {
+            ID: newId,
+            member_email: email,
+            Guest_Name: { first_name: firstName, last_name: lastName },
+            member_level: 'Silver',
+            Verification_Status: 'Verified',
+            Points: '0'
+          };
+        }
+
+        await checkOwnerOrAgent(email, 'google', newUser);
+        return;
       }
+
+      // If user already exists (Code 3002) or duplicate detected
+      if (res?.data?.code === 3002 || res?.data?.message?.toLowerCase()?.includes('duplicate')) {
+        console.log('User already exists in Zoho, retrieving profile...');
+        const encodedEmail = encodeURIComponent(email);
+        const fetchExisting = await zohoAxios.get(
+          `/zoho-api/api/v2/brandontan18/housekeeping-system/report/loyalty_members_Report?member_email=${encodedEmail}`
+        );
+        if (fetchExisting?.data?.code === 3000 && fetchExisting?.data?.data?.length > 0) {
+          const existingUser = fetchExisting.data.data[0];
+          await checkOwnerOrAgent(email, 'google', existingUser);
+          return;
+        }
+      }
+
+      const errMsg = res?.data?.message || res?.data?.description || 'Auto-signup failed. Please try again.';
+      setErrorMsg(errMsg);
+      setLoading(false);
     } catch (error) {
       console.error('Auto signup error', error);
-      setErrorMsg('Auto-signup failed.');
+      if (error?.response?.data?.code === 3002) {
+        try {
+          const encodedEmail = encodeURIComponent(email);
+          const fetchExisting = await zohoAxios.get(
+            `/zoho-api/api/v2/brandontan18/housekeeping-system/report/loyalty_members_Report?member_email=${encodedEmail}`
+          );
+          if (fetchExisting?.data?.code === 3000 && fetchExisting?.data?.data?.length > 0) {
+            const existingUser = fetchExisting.data.data[0];
+            await checkOwnerOrAgent(email, 'google', existingUser);
+            return;
+          }
+        } catch (e) {
+          console.error('Failed to retrieve existing user after 3002', e);
+        }
+      }
+      const detailedMsg =
+        error?.response?.data?.message ||
+        error?.response?.data?.description ||
+        error?.message ||
+        'Auto-signup failed.';
+      setErrorMsg(detailedMsg);
       setLoading(false);
     }
   };

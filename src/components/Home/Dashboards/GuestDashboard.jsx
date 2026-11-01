@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import zohoAxios from '../../../utility/axiosInstance';
-import { 
+import {
   Search, MapPin, Star, MessageCircle, X, ChevronRight,
   Building, HeartHandshake, PaintBucket, Bed, Smartphone, Quote,
   ShieldCheck, Moon, Wifi, Tag
@@ -10,12 +10,73 @@ import { getData, storeData } from '../../../utility/LocalStorageService';
 import { fetchRefreshToken } from '../../../helper';
 import './Dashboards.css';
 
+const PARTNER_LOGOS = [
+  {
+    name: 'T&T & Mitsubishi',
+    url: 'https://static.wixstatic.com/media/201a1b_5f1c7efc9b8744d7aca04dd8e9fa3d4e~mv2.png/v1/fill/w_258,h_144,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/T%26T%20%26%20Mitsubitshi%20Logo.png'
+  },
+  {
+    name: 'Partner 2',
+    url: 'https://static.wixstatic.com/media/b934fa_9af99494ae0340b78ec4557a22404e12~mv2.png/v1/crop/x_7,y_0,w_337,h_200/fill/w_240,h_144,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/201004_383n64j7sded.png'
+  },
+  {
+    name: 'Partner 3',
+    url: 'https://static.wixstatic.com/media/7cee09_f32b7ea1e2bc49daacad271ab9c72611~mv2.jpg/v1/fill/w_306,h_312,al_c,q_80,usm_0.66_1.00_0.01,enc_avif,quality_auto/7cee09_f32b7ea1e2bc49daacad271ab9c72611~mv2.jpg'
+  },
+  {
+    name: 'MIP Properties',
+    url: 'https://static.wixstatic.com/media/201a1b_a2cccf613c7743f8a088391fe2cc97f3~mv2.png/v1/fill/w_210,h_120,al_c,lg_1,q_85,enc_avif,quality_auto/mip%20properties%20site_logo.png'
+  },
+  {
+    name: 'Hartamas',
+    url: 'https://static.wixstatic.com/media/201a1b_5cf74435beaf4105ae0f1d083ccc4011~mv2.jpg/v1/fill/w_398,h_102,al_c,q_80,usm_0.66_1.00_0.01,enc_avif,quality_auto/Hartamas-logonew.jpg'
+  },
+  {
+    name: 'AG',
+    url: 'https://static.wixstatic.com/media/201a1b_2f1fa4a7fa204271a2e159ab59cb9633~mv2.png/v1/crop/x_0,y_105,w_971,h_205/fill/w_560,h_120,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/AG_logo.png'
+  },
+  {
+    name: 'Partner 7',
+    url: 'https://static.wixstatic.com/media/265207_daf8c6f372dd40e4b78ef097a68ae2ba~mv2.jpg/v1/fill/w_320,h_132,al_c,q_80,usm_0.66_1.00_0.01,enc_avif,quality_auto/265207_daf8c6f372dd40e4b78ef097a68ae2ba~mv2.jpg'
+  },
+  {
+    name: 'Partner 8',
+    url: 'https://static.wixstatic.com/media/201a1b_cff7a8900e9a4ddc8b145b69f2cbf1ba~mv2.jpg/v1/fill/w_458,h_120,al_c,q_80,usm_0.66_1.00_0.01,enc_avif,quality_auto/default_960x250.jpg'
+  },
+  {
+    name: 'Arte',
+    url: 'https://static.wixstatic.com/media/265207_df5f5a0920ae432797e7fdb0ef19a820~mv2.png/v1/fill/w_380,h_168,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/arte.png'
+  },
+  {
+    name: 'Gleneagles Hospital Kuala Lumpur',
+    url: 'https://static.wixstatic.com/media/265207_e56fa2238ba24024a77d460e36a18813~mv2.png/v1/fill/w_496,h_156,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/Gleneagles-Hospital-Kuala-Lumpur_Logo-1024x308.png'
+  }
+];
+
+const OTA_PARTNERS = [
+  {
+    name: 'Airbnb',
+    logo: `${import.meta.env.BASE_URL}images/airbnb-logo.svg`,
+    badge: 'Superhost Partner'
+  },
+  {
+    name: 'Booking.com',
+    logo: `${import.meta.env.BASE_URL}images/booking-logo.svg`,
+    badge: 'Preferred Partner'
+  },
+  {
+    name: 'Agoda',
+    logo: `${import.meta.env.BASE_URL}images/agoda-logo.svg`,
+    badge: 'Top Homes Partner'
+  }
+];
+
 const GuestDashboard = () => {
   const navigate = useNavigate();
   const [hotels, setHotels] = useState([]);
   const [loading, setLoading] = useState(false);
   const [userDetails, setUserDetails] = useState(null);
-  
+
   // Popup States
   const [popups, setPopups] = useState([]);
   const [activePopupIndex, setActivePopupIndex] = useState(0);
@@ -35,34 +96,87 @@ const GuestDashboard = () => {
     try {
       const Id = await getData('ID');
       const refreshToken = await getData('refreshToken');
-      
-      if (Id) {
-        const userRes = await zohoAxios.get(
-          `/zoho-api/api/v2/brandontan18/housekeeping-system/report/loyalty_members_Report/${Id}`,
-          { headers: { Authorization: `Zoho-oauthtoken ${refreshToken}` } }
-        );
-        if (userRes?.data?.code === 3000) {
-          setUserDetails(userRes.data.data);
+
+      // Populate user details from local storage (handles guest sessions instantly)
+      const storedUser = await getData('userDetails');
+      if (storedUser) {
+        try {
+          setUserDetails(typeof storedUser === 'string' ? JSON.parse(storedUser) : storedUser);
+        } catch (_) { }
+      }
+
+      const isGuest = !Id || String(Id).startsWith('guest') || Id === 'finance-owner';
+
+      // Only fetch loyalty member record from Zoho for real registered users (never for guests)
+      if (Id && !isGuest) {
+        try {
+          const userRes = await zohoAxios.get(
+            `/zoho-api/api/v2/brandontan18/housekeeping-system/report/loyalty_members_Report/${Id}`,
+            { headers: { Authorization: `Zoho-oauthtoken ${refreshToken}` } }
+          );
+          if (userRes?.data?.code === 3000 && userRes.data.data) {
+            setUserDetails(userRes.data.data);
+          }
+        } catch (userErr) {
+          console.warn('Could not fetch loyalty member details:', userErr);
         }
       }
 
-      // Load Hotels
-      const hotelRes = await zohoAxios.get(
-        `/zoho-api/api/v2/brandontan18/housekeeping-system/report/All_Building_Report?Mobile_App_Active=Active`,
-        { headers: { Authorization: `Zoho-oauthtoken ${refreshToken}` } }
-      );
-      if (hotelRes?.data?.code === 3000) {
-        setHotels(hotelRes.data.data);
+      // Load Hotels (prioritize active buildings with eZee configuration, same as Online Booking)
+      let hotelData = [];
+      try {
+        const hotelRes = await zohoAxios.get(
+          `/zoho-api/api/v2/brandontan18/housekeeping-system/report/All_Building_Report?Active=Active?Booking_Engine_Active=true`,
+          { headers: { Authorization: `Zoho-oauthtoken ${refreshToken}` } }
+        );
+        if (hotelRes?.data?.code === 3000 && Array.isArray(hotelRes.data.data)) {
+          hotelData = hotelRes.data.data;
+        }
+      } catch (e) {
+        console.warn('Error fetching Active buildings, trying Mobile_App_Active fallback', e);
+      }
+
+      if (hotelData.length === 0) {
+        try {
+          const fallbackRes = await zohoAxios.get(
+            `/zoho-api/api/v2/brandontan18/housekeeping-system/report/All_Building_Report?Booking_Engine_Active=true`,
+            { headers: { Authorization: `Zoho-oauthtoken ${refreshToken}` } }
+          );
+          if (fallbackRes?.data?.code === 3000 && Array.isArray(fallbackRes.data.data)) {
+            hotelData = fallbackRes.data.data;
+          }
+        } catch (_) { }
+      }
+
+      if (hotelData.length === 0) {
+        try {
+          const allRes = await zohoAxios.get(
+            `/zoho-api/api/v2/brandontan18/housekeeping-system/report/All_Building_Report`,
+            { headers: { Authorization: `Zoho-oauthtoken ${refreshToken}` } }
+          );
+          if (allRes?.data?.code === 3000 && Array.isArray(allRes.data.data)) {
+            hotelData = allRes.data.data;
+          }
+        } catch (_) { }
+      }
+
+      if (hotelData.length > 0) {
+        const withEzee = hotelData.filter(item => Boolean(item?.Ezee_Hotel_ID && String(item.Ezee_Hotel_ID).trim()));
+        setHotels(withEzee.length > 0 ? withEzee : hotelData);
       }
 
       // Load Popups
-      const popupRes = await zohoAxios.get(
-        `/zoho-api/api/v2/brandontan18/housekeeping-system/report/COBNB_App_Popups_Report`,
-        { headers: { Authorization: `Zoho-oauthtoken ${refreshToken}` } }
-      );
-      if (popupRes?.data?.code === 3000) {
-        const activePopups = popupRes.data.data.filter(item => item.Active === 'true');
-        handlePopups(activePopups);
+      try {
+        const popupRes = await zohoAxios.get(
+          `/zoho-api/api/v2/brandontan18/housekeeping-system/report/COBNB_App_Popups_Report`,
+          { headers: { Authorization: `Zoho-oauthtoken ${refreshToken}` } }
+        );
+        if (popupRes?.data?.code === 3000 && Array.isArray(popupRes.data.data)) {
+          const activePopups = popupRes.data.data.filter(item => item.Active === 'true');
+          handlePopups(activePopups);
+        }
+      } catch (pErr) {
+        console.warn('Could not fetch popups:', pErr);
       }
 
     } catch (error) {
@@ -146,6 +260,40 @@ const GuestDashboard = () => {
     }
   };
 
+  const handleProceed = (item) => {
+    const hotelCode = item?.Ezee_Hotel_ID;
+    const apiKey = item?.Ezee_Key;
+    const hotelName = item?.Building_Name;
+    const buildingImage = item?.Mobile_App_Image?.url ||
+      item?.Mobile_App_Image?.value ||
+      (typeof item?.Mobile_App_Image === 'string' ? item.Mobile_App_Image : '') ||
+      '';
+
+    // Save to recently viewed
+    try {
+      const currentList = Array.isArray(recentlyViewed) ? [...recentlyViewed] : [];
+      const updated = [item, ...currentList.filter(b => b?.ID !== item?.ID)].slice(0, 10);
+      setRecentlyViewed(updated);
+      storeData('recentlyviewed', JSON.stringify(updated));
+    } catch (_) { }
+
+    if (hotelCode && apiKey) {
+      navigate('/hotel-availability', {
+        state: {
+          hotelCode,
+          apiKey,
+          hotelName,
+          buildingImage,
+          buildingId: item?.ID
+        }
+      });
+    } else if (item?.Booking_URL?.url) {
+      window.open(item.Booking_URL.url, '_blank', 'noopener,noreferrer');
+    } else {
+      alert(`eZee Hotel Code or API Key is not configured for ${hotelName || 'this building'}.`);
+    }
+  };
+
   const handleBooking = (url) => {
     if (url) {
       window.open(url, '_blank', 'noopener,noreferrer');
@@ -160,7 +308,7 @@ const GuestDashboard = () => {
 
   return (
     <div className="dashboard-wrapper luxury-dashboard">
-      
+
       {/* Popups Modal */}
       {showPopup && popups.length > 0 && popups[activePopupIndex] && (
         <div style={{
@@ -170,7 +318,7 @@ const GuestDashboard = () => {
           backdropFilter: 'blur(8px)'
         }}>
           <div style={{ position: 'relative', maxWidth: '420px', width: '90%', animation: 'popIn 0.5s cubic-bezier(0.4, 0, 0.2, 1)' }}>
-            <button 
+            <button
               onClick={handleNextPopup}
               style={{
                 position: 'absolute', top: '-48px', right: 0,
@@ -180,8 +328,8 @@ const GuestDashboard = () => {
             >
               <X size={28} strokeWidth={1.5} />
             </button>
-            <img 
-              src={popups[activePopupIndex]?.Image} 
+            <img
+              src={popups[activePopupIndex]?.Image}
               alt="Promo"
               style={{ width: '100%', borderRadius: 'var(--radius-sm)', cursor: 'pointer', boxShadow: 'var(--shadow-hover)' }}
               onClick={() => handlePopupClick(popups[activePopupIndex])}
@@ -191,7 +339,7 @@ const GuestDashboard = () => {
       )}
 
       {/* Floating WhatsApp Button */}
-      <button 
+      <button
         onClick={handleWhatsApp}
         className="whatsapp-float-btn"
       >
@@ -205,7 +353,7 @@ const GuestDashboard = () => {
           <div className="hero-text" style={{ textAlign: 'center', margin: '0 auto', padding: '0 16px' }}>
             <h2 style={{ wordWrap: 'break-word' }}>Let Your Mind Travel</h2>
             <p style={{ margin: '0 auto', maxWidth: '90%' }}>Discover our curated luxury properties across Malaysia.</p>
-            
+
             {userDetails && (
               <div style={{ marginTop: '24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
                 <div style={{ fontSize: '18px', fontWeight: '600', color: 'var(--color-accent)' }}>
@@ -225,7 +373,7 @@ const GuestDashboard = () => {
             )}
           </div>
         </div>
-        
+
 
       </div>
 
@@ -256,41 +404,62 @@ const GuestDashboard = () => {
       <div className="section-container">
         <div className="section-header">
           <h3>Featured Properties</h3>
-          <span className="view-all">Explore All <ChevronRight size={16} /></span>
+          <span
+            className="view-all"
+            onClick={() => navigate('/online-booking')}
+            style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+          >
+            Explore All <ChevronRight size={16} />
+          </span>
         </div>
-        
+
         {loading && hotels.length === 0 ? (
           <div className="loading-state">
             <div className="spinner-dark"></div>
           </div>
         ) : (
           <div className="property-grid">
-            {hotels.map((item, index) => (
-              <div 
-                key={index} 
-                className="property-card"
-                onClick={() => handleBooking(item?.Booking_URL?.url)}
-              >
-                <div className="property-image" style={{ backgroundImage: `url(${item?.Mobile_App_Image?.value || item?.Mobile_App_Image?.url})` }}></div>
-                <div className="property-info" style={{ backgroundColor: 'var(--color-secondary)' }}>
-                  <div className="property-location">
-                    <MapPin size={12} color="var(--color-accent)" />
-                    {item?.Area || 'Malaysia'}
+            {hotels.map((item, index) => {
+              const bgImg = item?.Mobile_App_Image?.value ||
+                item?.Mobile_App_Image?.url ||
+                (typeof item?.Mobile_App_Image === 'string' ? item.Mobile_App_Image : '');
+
+              return (
+                <div
+                  key={item?.ID || index}
+                  className="property-card"
+                  onClick={() => handleProceed(item)}
+                  style={{ cursor: 'pointer' }}
+                >
+                  <div
+                    className="property-image"
+                    style={{
+                      backgroundImage: bgImg ? `url(${bgImg})` : 'none',
+                      backgroundColor: 'var(--color-bg-secondary)'
+                    }}
+                  ></div>
+                  <div className="property-info" style={{ backgroundColor: 'var(--color-secondary)' }}>
+                    <div className="property-location">
+                      <MapPin size={12} color="var(--color-accent)" />
+                      {item?.Area || 'Malaysia'}
+                    </div>
+                    <h4 style={{ color: 'var(--color-primary)', fontSize: '20px', fontWeight: '600' }}>
+                      {item?.Building_Name}
+                    </h4>
                   </div>
-                  <h4 style={{ color: 'var(--color-primary)', fontSize: '20px', fontWeight: '600' }}>{item?.Building_Name}</h4>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
 
       {/* Best Rates Promotional Section */}
       <div className="fade-in-up stagger-1" style={{ width: '100%', marginTop: '60px' }}>
-        <div style={{ 
-          position: 'relative', 
-          padding: '80px 40px', 
-          textAlign: 'center', 
+        <div style={{
+          position: 'relative',
+          padding: '80px 40px',
+          textAlign: 'center',
           overflow: 'hidden',
           boxShadow: 'var(--shadow-luxury)'
         }}>
@@ -319,12 +488,12 @@ const GuestDashboard = () => {
             <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: '20px', maxWidth: '600px', margin: '0 auto 48px auto', lineHeight: '1.6' }}>
               Get the best prices plus free Wi-Fi when you become a COBNB+ member.
             </p>
-            
+
             <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', marginBottom: '60px', flexWrap: 'wrap' }}>
               <button className="hover-lift" onClick={() => navigate('/profile')} style={{ backgroundColor: 'var(--color-accent)', color: '#111111', padding: '16px 40px', border: 'none', borderRadius: 'var(--radius-sm)', fontSize: '14px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '1px', cursor: 'pointer' }}>Join for Free</button>
               <button className="hover-lift" onClick={() => navigate('/login')} style={{ backgroundColor: 'transparent', color: '#ffffff', padding: '16px 40px', border: '1px solid #ffffff', borderRadius: 'var(--radius-sm)', fontSize: '14px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '1px', cursor: 'pointer' }}>Sign In</button>
             </div>
-            
+
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '32px', borderTop: '1px solid rgba(255,255,255,0.2)', paddingTop: '48px' }}>
               {[
                 { label: 'BEST RATE GUARANTEE', icon: <ShieldCheck size={28} /> },
@@ -380,7 +549,7 @@ const GuestDashboard = () => {
             <p style={{ color: 'var(--color-secondary)', opacity: 0.8, fontSize: '16px', lineHeight: '1.6', marginBottom: '32px', maxWidth: '480px' }}>
               Our property management mobile app allows you to stay connected to your rental business instantly. Get in touch with us now.
             </p>
-            <button 
+            <button
               onClick={() => window.open('https://onelink.to/w84afm', '_blank')}
               className="hover-lift"
               style={{ backgroundColor: 'var(--color-accent)', color: '#111111', border: 'none', padding: '14px 32px', borderRadius: 'var(--radius-sm)', fontSize: '14px', fontWeight: '700', letterSpacing: '1px', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '8px' }}
@@ -394,6 +563,58 @@ const GuestDashboard = () => {
         </div>
       </div>
 
+      {/* Working With the Best Clients and Partners */}
+      <div className="section-container fade-in-up stagger-2" style={{ marginTop: '70px', marginBottom: '30px' }}>
+        <div style={{ textAlign: 'center', marginBottom: '36px' }}>
+          <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '38px', color: 'var(--color-primary)', margin: '0 0 12px 0', letterSpacing: '-0.5px' }}>
+            Working With the Best Clients and Partners
+          </h3>
+          <p style={{ color: 'var(--color-text-muted)', fontSize: '15px', maxWidth: '620px', margin: '0 auto', lineHeight: '1.6' }}>
+            Proud to partner with distinguished real estate developers, agencies, and institutions across the region.
+          </p>
+        </div>
+
+        {/* Running Horizontal Logos Marquee */}
+        <div className="clients-marquee-wrapper">
+          <div className="clients-marquee-track">
+            {[...PARTNER_LOGOS, ...PARTNER_LOGOS].map((logo, index) => (
+              <div key={index} className="clients-logo-item">
+                <img
+                  src={logo.url}
+                  alt={logo.name || 'Client & Partner'}
+                  loading="lazy"
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* OTA Partners */}
+      <div className="section-container fade-in-up stagger-2" style={{ marginTop: '30px', marginBottom: '60px' }}>
+        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+          <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '32px', color: 'var(--color-primary)', margin: '0 0 10px 0', letterSpacing: '-0.5px' }}>
+            OTA Partners
+          </h3>
+          <p style={{ color: 'var(--color-text-muted)', fontSize: '15px', maxWidth: '580px', margin: '0 auto', lineHeight: '1.6' }}>
+            Connected with world-leading online travel agencies to ensure maximum global visibility and premium booking rates.
+          </p>
+        </div>
+
+        <div className="ota-partners-row">
+          {OTA_PARTNERS.map((partner, index) => (
+            <div key={index} className="ota-partner-card hover-lift">
+              <img
+                src={partner.logo}
+                alt={partner.name}
+                className="ota-partner-logo"
+              />
+              <span className="ota-partner-badge">{partner.badge}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* Testimonials */}
       <div className="section-container fade-in-up stagger-3">
         <div style={{ textAlign: 'center', marginBottom: '56px' }}>
@@ -402,21 +623,21 @@ const GuestDashboard = () => {
             Discover what our property owners have to say about their experience maximizing rental yields with Cobnb.
           </p>
         </div>
-        
+
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '32px' }}>
           {[
             { name: 'Mr Wong', title: 'Regalia Residences Owner', text: "I never thought it was possible to get a more than 8% yield in my apartment. Thank you for showing us the way and helping us to manage our investment." },
             { name: 'Andrew Lim', title: 'Novum Owner', text: "I’m so happy I chose to work with CoBnB. From the initial consultation all the way through the apartment listing, the service I received was impeccable." },
             { name: 'En. Hafiz', title: 'Arte Mont Kiara Owner', text: "CoBnB marketing is really impressive. I have been listing my own unit for 4 months and could not have the same amount of booking revenue in what CoBnB did in 1 month." }
           ].map((testimonial, idx) => (
-            <div 
-              key={idx} 
-              className="hover-lift" 
-              style={{ 
+            <div
+              key={idx}
+              className="hover-lift"
+              style={{
                 background: 'linear-gradient(145deg, var(--color-secondary), var(--color-bg-secondary))',
-                padding: '48px 40px', 
-                borderRadius: '24px', 
-                border: '1px solid var(--color-border)', 
+                padding: '48px 40px',
+                borderRadius: '24px',
+                border: '1px solid var(--color-border)',
                 position: 'relative',
                 boxShadow: '0 20px 40px rgba(0,0,0,0.05)',
                 display: 'flex',
@@ -427,18 +648,18 @@ const GuestDashboard = () => {
               <div style={{ position: 'absolute', top: '32px', right: '32px', opacity: 0.05 }}>
                 <Quote size={80} fill="var(--color-primary)" color="transparent" />
               </div>
-              
+
               <div>
                 <div style={{ display: 'flex', gap: '6px', marginBottom: '32px' }}>
-                  {[1,2,3,4,5].map(star => <Star key={star} size={18} color="var(--color-accent)" fill="var(--color-accent)" />)}
+                  {[1, 2, 3, 4, 5].map(star => <Star key={star} size={18} color="var(--color-accent)" fill="var(--color-accent)" />)}
                 </div>
-                
-                <p style={{ 
-                  color: 'var(--color-text-main)', 
-                  fontSize: '17px', 
-                  lineHeight: '1.8', 
+
+                <p style={{
+                  color: 'var(--color-text-main)',
+                  fontSize: '17px',
+                  lineHeight: '1.8',
                   fontFamily: 'var(--font-heading)',
-                  fontStyle: 'italic', 
+                  fontStyle: 'italic',
                   marginBottom: '40px',
                   position: 'relative',
                   zIndex: 1
@@ -446,7 +667,7 @@ const GuestDashboard = () => {
                   "{testimonial.text}"
                 </p>
               </div>
-              
+
               <div style={{ display: 'flex', alignItems: 'center', gap: '16px', position: 'relative', zIndex: 1 }}>
                 <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: 'var(--color-bg-secondary)', border: '2px solid var(--color-accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-accent)', fontWeight: 'bold', fontSize: '18px' }}>
                   {testimonial.name.charAt(0)}
@@ -466,13 +687,35 @@ const GuestDashboard = () => {
         <div className="section-container">
           <h3 className="section-title">Recently Viewed</h3>
           <div className="horizontal-scroll hide-scrollbar">
-            {recentlyViewed.map((item, idx) => (
-              <div key={idx} className="recent-card hover-lift" onClick={() => handleBooking(item?.Booking_URL?.url)}>
-                <div className="recent-image" style={{ backgroundImage: `url(${item?.Mobile_App_Image?.value || item?.Mobile_App_Image?.url})`, borderRadius: 'var(--radius-sm)' }}></div>
-                <div className="recent-name" style={{ color: 'var(--color-primary)', fontSize: '18px', fontWeight: '600' }}>{item?.Building_Name}</div>
-                <div className="recent-city" style={{ color: 'var(--color-text-muted)' }}>{item?.City}</div>
-              </div>
-            ))}
+            {recentlyViewed.map((item, idx) => {
+              const bgImg = item?.Mobile_App_Image?.value ||
+                item?.Mobile_App_Image?.url ||
+                (typeof item?.Mobile_App_Image === 'string' ? item.Mobile_App_Image : '');
+
+              return (
+                <div
+                  key={item?.ID || idx}
+                  className="recent-card hover-lift"
+                  onClick={() => handleProceed(item)}
+                  style={{ cursor: 'pointer' }}
+                >
+                  <div
+                    className="recent-image"
+                    style={{
+                      backgroundImage: bgImg ? `url(${bgImg})` : 'none',
+                      backgroundColor: 'var(--color-bg-secondary)',
+                      borderRadius: 'var(--radius-sm)'
+                    }}
+                  ></div>
+                  <div className="recent-name" style={{ color: 'var(--color-primary)', fontSize: '18px', fontWeight: '600' }}>
+                    {item?.Building_Name}
+                  </div>
+                  <div className="recent-city" style={{ color: 'var(--color-text-muted)' }}>
+                    {item?.Area || item?.City || 'Malaysia'}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
@@ -491,20 +734,21 @@ const GuestDashboard = () => {
             <a href="https://www.tiktok.com/@cobnb.malaysia?lang=en" target="_blank" rel="noopener noreferrer">TikTok</a>
           </div>
           <div style={{ marginBottom: '40px', color: 'inherit', opacity: 0.8, fontSize: '14px', lineHeight: '1.8', maxWidth: '400px', margin: '0 auto 40px auto' }}>
-            <img 
-              src="https://static.wixstatic.com/media/201a1b_b218982b63c849f98d3165723606121d~mv2_d_6796_3863_s_4_2.png/v1/crop/x_65,y_0,w_6731,h_3863/fill/w_422,h_238,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/logo%20with%20TM.png" 
-              alt="COBNB Logo" 
+            <img
+              src="https://static.wixstatic.com/media/201a1b_b218982b63c849f98d3165723606121d~mv2_d_6796_3863_s_4_2.png/v1/crop/x_65,y_0,w_6731,h_3863/fill/w_422,h_238,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/logo%20with%20TM.png"
+              alt="COBNB Logo"
               style={{ height: '40px', objectFit: 'contain', margin: '0 auto 20px auto', display: 'block' }}
             />
             <div>+6010-271 5288</div>
             <div>ask@cobnb.com.my</div>
-            <div style={{ marginTop: '8px' }}>100 A - 100 C, Jalan Imbi, WP, 55100 Kuala Lumpur,<br/>Wilayah Persekutuan Kuala Lumpur</div>
+            <div style={{ marginTop: '8px' }}>100 A - 100 C, Jalan Imbi, WP, 55100 Kuala Lumpur,<br />Wilayah Persekutuan Kuala Lumpur</div>
           </div>
           <p className="copyright">&copy; {new Date().getFullYear()} Cobnb Malaysia. All rights reserved.</p>
         </div>
       </footer>
 
-      <style dangerouslySetInnerHTML={{__html: `
+      <style dangerouslySetInnerHTML={{
+        __html: `
         .luxury-dashboard {
           padding-bottom: 0 !important;
           background-color: var(--color-bg-secondary);
@@ -895,6 +1139,143 @@ const GuestDashboard = () => {
           }
           .separator {
             display: none;
+          }
+        }
+
+        /* Running Logos Marquee */
+        .clients-marquee-wrapper {
+          overflow: hidden;
+          position: relative;
+          width: 100%;
+          padding: 12px 0;
+          mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+          -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+        }
+
+        .clients-marquee-track {
+          display: flex;
+          align-items: center;
+          gap: 24px;
+          width: max-content;
+          animation: marqueeScroll 32s linear infinite;
+        }
+
+        .clients-marquee-wrapper:hover .clients-marquee-track {
+          animation-play-state: paused;
+        }
+
+        @keyframes marqueeScroll {
+          0% {
+            transform: translateX(0);
+          }
+          100% {
+            transform: translateX(-50%);
+          }
+        }
+
+        .clients-logo-item {
+          flex-shrink: 0;
+          background: #ffffff;
+          border: 1px solid var(--color-border);
+          border-radius: 14px;
+          padding: 14px 24px;
+          height: 85px;
+          width: 190px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
+          transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+        }
+
+        .clients-logo-item:hover {
+          transform: translateY(-4px);
+          box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
+          border-color: var(--color-accent);
+        }
+
+        .clients-logo-item img {
+          max-width: 100%;
+          max-height: 54px;
+          object-fit: contain;
+          filter: grayscale(15%);
+          opacity: 0.92;
+          transition: filter 0.25s ease, opacity 0.25s ease;
+        }
+
+        .clients-logo-item:hover img {
+          filter: grayscale(0%);
+          opacity: 1;
+        }
+
+        @media (max-width: 768px) {
+          .clients-logo-item {
+            width: 150px;
+            height: 75px;
+            padding: 10px 18px;
+          }
+          .clients-logo-item img {
+            max-height: 44px;
+          }
+        }
+
+        /* OTA Partners */
+        .ota-partners-row {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 28px;
+          flex-wrap: wrap;
+          padding: 8px 0;
+        }
+
+        .ota-partner-card {
+          flex: 1 1 240px;
+          max-width: 320px;
+          min-width: 220px;
+          background: #ffffff;
+          border: 1px solid var(--color-border);
+          border-radius: 18px;
+          padding: 26px 32px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 12px;
+          box-shadow: 0 4px 18px rgba(0, 0, 0, 0.04);
+          transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+        }
+
+        .ota-partner-card:hover {
+          transform: translateY(-5px);
+          box-shadow: 0 14px 32px rgba(0, 0, 0, 0.08);
+          border-color: var(--color-accent);
+        }
+
+        .ota-partner-logo {
+          max-height: 38px;
+          width: auto;
+          max-width: 170px;
+          object-fit: contain;
+          transition: transform 0.2s ease;
+        }
+
+        .ota-partner-card:hover .ota-partner-logo {
+          transform: scale(1.05);
+        }
+
+        .ota-partner-badge {
+          font-size: 11px;
+          font-weight: 700;
+          color: var(--color-text-muted);
+          text-transform: uppercase;
+          letter-spacing: 1px;
+        }
+
+        @media (max-width: 768px) {
+          .ota-partner-card {
+            max-width: 100%;
+            padding: 20px 24px;
           }
         }
       `}} />

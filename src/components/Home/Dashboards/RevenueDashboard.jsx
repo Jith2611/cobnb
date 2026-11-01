@@ -250,7 +250,7 @@ const RevenueDashboard = () => {
       ];
 
       let csvContent = headers.join(",") + "\n";
-      
+
       const dataToExport = selectedCountry === 'All' ? allData : allData.filter(b => b.Country === selectedCountry);
 
       dataToExport.forEach((row) => {
@@ -285,8 +285,8 @@ const RevenueDashboard = () => {
   };
 
   const uniqueCountries = [...new Set(bookings.map(b => b.Country).filter(Boolean))].sort();
-  const filteredBookings = selectedCountry === 'All' 
-    ? bookings 
+  const filteredBookings = selectedCountry === 'All'
+    ? bookings
     : bookings.filter(b => b.Country === selectedCountry);
 
   return (
@@ -312,7 +312,7 @@ const RevenueDashboard = () => {
       {/* Stat Cards */}
       <div className="rd-stats-grid">
         <StatCard icon={<DollarSign size={22} />} label="Total Revenue" value={`RM ${totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} sub={colivingRevenue > 0 ? `STR: RM ${monthlyRevenueData.toFixed(2)}  Co-living: RM ${colivingRevenue.toFixed(2)}` : null} accent="#C5A880" />
-        <StatCard icon={<Target size={22} />} label="Revenue Progress" value={`${revenueProgress}%`} sub={`Target: RM ${fullMonthlyRevenue.toLocaleString()}`} accent="#132135" progress={revenueProgress} />
+        {/* <StatCard icon={<Target size={22} />} label="Revenue Progress" value={`${revenueProgress}%`} sub={`Target: RM ${fullMonthlyRevenue.toLocaleString()}`} accent="#132135" progress={revenueProgress} /> */}
         <StatCard icon={<Calendar size={22} />} label="Occupancy Rate" value={`${occupancyRate}%`} sub={`${nightOccupied} / ${fullNight} nights`} accent="#10B981" progress={occupancyRate} />
         <StatCard icon={<Home size={22} />} label="Properties" value={property.length} sub="Under management" accent="#6366F1" />
         {lastUpdatedTime && (

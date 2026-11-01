@@ -261,3 +261,34 @@
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
+
+.auth-guest-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: var(--color-bg-secondary);
+  color: var(--color-primary);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 12px;
+  transition: var(--transition-fast);
+}
+
+.auth-guest-btn:hover:not(:disabled) {
+  background: rgba(197, 168, 128, 0.12);
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.auth-guest-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
