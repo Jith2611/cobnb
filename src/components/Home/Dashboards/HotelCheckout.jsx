@@ -385,10 +385,10 @@ const HotelCheckout = () => {
     ====================================================================
     */
 
-    // 3. Fiuu Sandbox Credentials
-    const merchantID = 'SB_cobnb';
-    const verifyKey = '5fe17c396eed59f4c93aaeb419367441';
-    const secretKey = 'bad8dd13835f4668e32609a50adf991b';
+    // 3. Fiuu Live Credentials
+    const merchantID = 'JPcobnb04';
+    const verifyKey = 'f770471ee945b098e4d05e3e0414e08d';
+    const secretKey = '896b404449b3651d3ef4f491c3984aaf';
 
     const orderid = 'COBNB-' + Date.now();
     const formattedAmount = (parseFloat(totalPrice) || 0).toFixed(2);
@@ -441,7 +441,7 @@ const HotelCheckout = () => {
     console.groupEnd();
 
     // 3. Open Fiuu Payment Gateway via auto-submitting POST form
-    const paymentUrl = `https://sandbox-payment.fiuu.com/MOLPay/pay/${merchantID}/`;
+    const paymentUrl = `https://payment.fiuu.com/MOLPay/pay/${merchantID}/`;
     const form = document.createElement('form');
     form.setAttribute('method', 'POST');
     form.setAttribute('action', paymentUrl);

@@ -28,17 +28,38 @@ const PaymentReturn = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const [paymentData, setPaymentData] = useState({});
-  const [pendingBooking, setPendingBooking] = useState(null);
-  const [showModal, setShowModal] = useState(true);
-  const [activeTab, setActiveTab] = useState('summary'); // 'summary' | 'json'
+  const [paymentData, setPaymentData] = useState(() => {
+    try {
+      const searchParams = new URLSearchParams(window.location.search);
+      const data = {};
+      for (const [key, value] of searchParams.entries()) {
+        data[key] = value;
+      }
+      return data;
+    } catch (_) {
+      return {};
+    }
+  });
+
+  const [pendingBooking, setPendingBooking] = useState(() => {
+    try {
+      const stored = sessionStorage.getItem('cobnb_pending_booking');
+      return stored ? JSON.parse(stored) : null;
+    } catch (e) {
+      console.warn('Could not read pending booking from sessionStorage', e);
+      return null;
+    }
+  });
+
+  const [showModal, setShowModal] = useState(false);
+  const [activeTab, setActiveTab] = useState('summary');
   const [copied, setCopied] = useState(false);
   const [bookingLoading, setBookingLoading] = useState(false);
   const [bookingError, setBookingError] = useState(null);
   const hasCalledBookingRef = useRef(false);
 
   useEffect(() => {
-    // 1. Parse URL Query Parameters from Fiuu Return
+    // Parse URL Query Parameters from Fiuu Return
     const searchParams = new URLSearchParams(location.search);
     const data = {};
     for (const [key, value] of searchParams.entries()) {
@@ -46,7 +67,6 @@ const PaymentReturn = () => {
     }
     setPaymentData(data);
 
-    // 2. Load pending booking details & bookingPayload from sessionStorage
     try {
       const stored = sessionStorage.getItem('cobnb_pending_booking');
       if (stored) {
@@ -61,8 +81,10 @@ const PaymentReturn = () => {
     console.log('Raw Query:', location.search);
     console.groupEnd();
 
-    // Auto-open modal on mount
-    setShowModal(true);
+    // Only show modal if payment failed
+    if (data.status && data.status !== '00' && data.status !== '22') {
+      setShowModal(true);
+    }
   }, [location.search]);
 
   // Determine status (00 = Success, 11 = Failed, 22 = Pending)
@@ -377,6 +399,22 @@ const PaymentReturn = () => {
     }
   };
 
+  // Auto-call eZee InsertBooking API directly upon successful payment capture
+  useEffect(() => {
+    if (isSuccess && !hasCalledBookingRef.current && !fetchingKey) {
+      if (effectiveHotelCode && effectiveApiKey) {
+        hasCalledBookingRef.current = true;
+        console.log('⚡ Direct auto-call callBookingApi triggered after payment capture');
+        callBookingApi();
+      } else if (!resolvedApiKey && !apiKeyOverride && effectiveHotelCode) {
+        // Waiting for auto-fetch of apiKey from Zoho
+      } else if (!effectiveHotelCode || !effectiveApiKey) {
+        hasCalledBookingRef.current = true;
+        setBookingError('Missing property credentials (HotelCode or APIKey). Please check booking details.');
+      }
+    }
+  }, [isSuccess, fetchingKey, effectiveHotelCode, effectiveApiKey, resolvedApiKey, apiKeyOverride]);
+
   const handleRetryCheckout = () => {
     if (pendingBooking?.room) {
       navigate('/hotel-checkout', {
@@ -420,26 +458,40 @@ const PaymentReturn = () => {
           alignItems: 'center',
           justifyContent: 'center',
           margin: '0 auto 20px',
-          background: isSuccess ? 'rgba(16, 185, 129, 0.12)' : (isPending ? 'rgba(245, 158, 11, 0.12)' : 'rgba(239, 68, 68, 0.12)')
+          background: isSuccess
+            ? (bookingLoading ? 'rgba(197, 168, 128, 0.15)' : 'rgba(16, 185, 129, 0.12)')
+            : (isPending ? 'rgba(245, 158, 11, 0.12)' : 'rgba(239, 68, 68, 0.12)')
         }}>
-          {isSuccess && <CheckCircle2 size={40} color="#10b981" />}
+          {isSuccess && (
+            bookingLoading
+              ? <Loader2 size={38} color="var(--color-accent)" style={{ animation: 'spin 1s linear infinite' }} />
+              : <CheckCircle2 size={40} color="#10b981" />
+          )}
           {isPending && <AlertTriangle size={40} color="#f59e0b" />}
           {isFailed && <XCircle size={40} color="#ef4444" />}
           {!isSuccess && !isPending && !isFailed && <ShieldCheck size={40} color="var(--color-accent)" />}
         </div>
 
         <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: '24px', margin: '0 0 8px 0', color: 'var(--color-text-main)' }}>
-          {isSuccess ? 'Payment Successful' : (isPending ? 'Payment Pending' : (isFailed ? 'Payment Failed' : 'Payment Response Received'))}
+          {isSuccess
+            ? (bookingLoading
+                ? 'Confirming Your Reservation...'
+                : (bookingError ? 'Payment Captured' : 'Payment Successful'))
+            : (isPending ? 'Payment Pending' : (isFailed ? 'Payment Failed' : 'Payment Response Received'))}
         </h2>
 
         <p style={{ color: 'var(--color-text-muted)', fontSize: '14px', margin: '0 0 24px 0', lineHeight: 1.5 }}>
           {isSuccess
-            ? 'Your transaction was approved and processed by Fiuu sandbox.'
+            ? (bookingLoading
+                ? 'Your payment was approved! Please hold on a moment while we register and confirm your booking reservation...'
+                : (bookingError
+                    ? 'Your payment was captured, but there was an issue finalizing with the reservation system.'
+                    : 'Your transaction was approved and processed by Fiuu.'))
             : (isPending
               ? 'Your payment is currently pending confirmation from the payment provider.'
               : (isFailed
                 ? (paymentData.error_desc || 'The payment transaction could not be completed.')
-                : 'Fiuu Sandbox Gateway test response screen.'))}
+                : 'Fiuu Gateway response screen.'))}
         </p>
 
         {/* Transaction Summary Card */}
@@ -487,63 +539,94 @@ const PaymentReturn = () => {
 
         {/* Action Buttons on background page */}
         <div style={{ display: 'flex', gap: '12px', flexDirection: 'column' }}>
-          {isSuccess && (
-            <button
-              type="button"
-              onClick={() => callBookingApi(bookingPayload)}
-              disabled={bookingLoading}
-              style={{
-                padding: '12px 20px',
-                borderRadius: '10px',
-                border: 'none',
-                background: bookingError ? '#ef4444' : 'var(--color-accent)',
-                color: '#fff',
-                fontWeight: 700,
-                fontSize: '14px',
-                cursor: bookingLoading ? 'not-allowed' : 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-                boxShadow: '0 4px 14px rgba(197, 168, 128, 0.3)'
-              }}
-            >
-              {bookingLoading ? (
-                <>
-                  <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Making Booking...
-                </>
-              ) : bookingError ? (
-                <>
-                  <RotateCcw size={16} /> Retry Make Booking
-                </>
-              ) : (
-                <>
-                  <CheckCircle2 size={16} /> Make Booking
-                </>
-              )}
-            </button>
-          )}
-
-          <button
-            onClick={() => setShowModal(true)}
-            style={{
-              padding: '12px 20px',
-              borderRadius: '10px',
-              border: '1px solid var(--color-border)',
-              background: 'transparent',
-              color: 'var(--color-text-main)',
-              fontWeight: 600,
-              fontSize: '14px',
-              cursor: 'pointer',
+          {bookingLoading && (
+            <div style={{
+              background: 'rgba(197, 168, 128, 0.1)',
+              border: '1px solid rgba(197, 168, 128, 0.3)',
+              borderRadius: '12px',
+              padding: '16px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '8px'
-            }}
-          >
-            <Code2 size={18} color="var(--color-accent)" />
-            {isSuccess ? 'View Booking Payload Modal' : 'View Error Modal'}
-          </button>
+              gap: '10px',
+              color: 'var(--color-accent)',
+              fontSize: '14px',
+              fontWeight: 600
+            }}>
+              <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} />
+              Connecting to property reservation system to finalize booking...
+            </div>
+          )}
+
+          {bookingError && (
+            <div style={{
+              background: 'rgba(239, 68, 68, 0.08)',
+              border: '1px solid rgba(239, 68, 68, 0.25)',
+              borderRadius: '12px',
+              padding: '16px',
+              textAlign: 'left'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', marginBottom: '12px' }}>
+                <AlertTriangle size={18} color="#ef4444" style={{ flexShrink: 0, marginTop: '2px' }} />
+                <div>
+                  <h4 style={{ margin: '0 0 4px 0', fontSize: '14px', color: '#ef4444', fontWeight: 700 }}>
+                    Booking Confirmation Notice
+                  </h4>
+                  <p style={{ margin: 0, fontSize: '13px', color: 'var(--color-text-main)', lineHeight: 1.5 }}>
+                    {bookingError}
+                  </p>
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  onClick={() => callBookingApi()}
+                  disabled={bookingLoading}
+                  style={{
+                    padding: '9px 16px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    background: 'var(--color-accent)',
+                    color: '#fff',
+                    fontWeight: 600,
+                    fontSize: '13px',
+                    cursor: bookingLoading ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  <RotateCcw size={14} /> Retry Confirmation
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigate('/booking-confirmation', {
+                      state: {
+                        booking: { success: true, Booking_No: paymentData.orderid, isPaid: true },
+                        bookingPayload,
+                        paymentData,
+                        room: pendingBooking?.room,
+                        hotelName: pendingBooking?.hotelName
+                      }
+                    });
+                  }}
+                  style={{
+                    padding: '9px 16px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--color-border)',
+                    background: 'var(--color-bg-secondary)',
+                    color: 'var(--color-text-main)',
+                    fontWeight: 600,
+                    fontSize: '13px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Proceed to Confirmation
+                </button>
+              </div>
+            </div>
+          )}
 
           {isFailed && (
             <button
@@ -619,600 +702,6 @@ const PaymentReturn = () => {
       </div>
 
       {/* ========================================================== */}
-      {/* SUCCESS MODAL: BOOKING PAYLOAD DEBUG MODAL                 */}
-      {/* ========================================================== */}
-      {showModal && isSuccess && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.75)',
-          backdropFilter: 'blur(6px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '20px',
-          zIndex: 9999
-        }}>
-          <div style={{
-            background: 'var(--color-bg-secondary)',
-            border: '1px solid var(--color-border)',
-            borderRadius: '20px',
-            maxWidth: '720px',
-            width: '100%',
-            maxHeight: '90vh',
-            display: 'flex',
-            flexDirection: 'column',
-            boxShadow: '0 25px 60px rgba(0,0,0,0.3)',
-            animation: 'modalPop 0.25s ease-out',
-            overflow: 'hidden'
-          }}>
-            {/* Modal Header */}
-            <div style={{
-              padding: '20px 24px',
-              borderBottom: '1px solid var(--color-border)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              background: 'var(--color-bg-main)'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <div style={{
-                  width: '40px',
-                  height: '40px',
-                  borderRadius: '10px',
-                  background: 'rgba(16, 185, 129, 0.12)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#10b981'
-                }}>
-                  <CheckCircle2 size={24} />
-                </div>
-                <div>
-                  <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: 'var(--color-text-main)', fontFamily: 'var(--font-heading)' }}>
-                    Payment Successful (Sandbox)
-                  </h3>
-                  <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: 'var(--color-text-muted)' }}>
-                    Order ID: <strong>{paymentData.orderid || pendingBooking?.orderid || 'N/A'}</strong> • Amount: <strong>{paymentData.currency || 'MYR'} {paymentData.amount || pendingBooking?.amount || '0.00'}</strong>
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => setShowModal(false)}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: 'var(--color-text-muted)',
-                  cursor: 'pointer',
-                  padding: '6px',
-                  borderRadius: '50%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            {/* Debug Banner */}
-            <div style={{
-              background: 'rgba(197, 168, 128, 0.12)',
-              borderBottom: '1px solid rgba(197, 168, 128, 0.25)',
-              padding: '12px 24px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: '12px',
-              flexWrap: 'wrap'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Code2 size={16} color="var(--color-accent)" />
-                <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-accent)' }}>
-                  Booking API Payload Inspector
-                </span>
-                <span style={{
-                  fontSize: '11px',
-                  background: bookingLoading ? 'rgba(59, 130, 246, 0.2)' : (bookingError ? 'rgba(239, 68, 68, 0.2)' : 'rgba(16, 185, 129, 0.2)'),
-                  color: bookingLoading ? '#3b82f6' : (bookingError ? '#ef4444' : '#10b981'),
-                  padding: '2px 8px',
-                  borderRadius: '4px',
-                  fontWeight: 600,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px'
-                }}>
-                  {bookingLoading && <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} />}
-                  {bookingLoading ? 'Executing Booking API...' : (bookingError ? 'API Error' : 'Ready for Booking')}
-                </span>
-              </div>
-              {/* Tab Selector */}
-              <div style={{ display: 'flex', gap: '4px', background: 'var(--color-bg-main)', padding: '3px', borderRadius: '8px', border: '1px solid var(--color-border)' }}>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('summary')}
-                  style={{
-                    padding: '4px 10px',
-                    borderRadius: '6px',
-                    border: 'none',
-                    background: activeTab === 'summary' ? 'var(--color-accent)' : 'transparent',
-                    color: activeTab === 'summary' ? '#fff' : 'var(--color-text-muted)',
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    cursor: 'pointer'
-                  }}
-                >
-                  <FileText size={13} style={{ display: 'inline', marginRight: '4px', verticalAlign: '-1px' }} />
-                  Summary
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('json')}
-                  style={{
-                    padding: '4px 10px',
-                    borderRadius: '6px',
-                    border: 'none',
-                    background: activeTab === 'json' ? 'var(--color-accent)' : 'transparent',
-                    color: activeTab === 'json' ? '#fff' : 'var(--color-text-muted)',
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    cursor: 'pointer'
-                  }}
-                >
-                  <Code2 size={13} style={{ display: 'inline', marginRight: '4px', verticalAlign: '-1px' }} />
-                  JSON
-                </button>
-              </div>
-            </div>
-
-            {/* Modal Body */}
-            <div style={{ padding: '24px', overflowY: 'auto', flex: 1 }}>
-              {/* Payment Success & Make Booking Prompt */}
-              {!bookingLoading && !bookingError && (
-                <div style={{
-                  background: 'rgba(16, 185, 129, 0.08)',
-                  border: '1px solid rgba(16, 185, 129, 0.25)',
-                  borderRadius: '12px',
-                  padding: '14px 16px',
-                  marginBottom: '18px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: '12px',
-                  flexWrap: 'wrap'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <CheckCircle2 size={20} color="#10b981" style={{ flexShrink: 0 }} />
-                    <div>
-                      <h4 style={{ margin: 0, fontSize: '13px', fontWeight: 700, color: '#10b981' }}>
-                        Payment Verified Successfully
-                      </h4>
-                      <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: 'var(--color-text-muted)' }}>
-                        Press the <strong>Make Booking</strong> button to execute room reservation with eZee API.
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => callBookingApi(bookingPayload)}
-                    style={{
-                      padding: '8px 16px',
-                      borderRadius: '6px',
-                      border: 'none',
-                      background: 'var(--color-accent)',
-                      color: '#fff',
-                      fontSize: '12px',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px'
-                    }}
-                  >
-                    <CheckCircle2 size={14} /> Make Booking
-                  </button>
-                </div>
-              )}
-
-              {/* API Execution Alert State */}
-              {bookingLoading && (
-                <div style={{
-                  background: 'rgba(59, 130, 246, 0.08)',
-                  border: '1px solid rgba(59, 130, 246, 0.25)',
-                  borderRadius: '12px',
-                  padding: '16px',
-                  marginBottom: '18px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px'
-                }}>
-                  <Loader2 size={24} color="#3b82f6" style={{ animation: 'spin 1s linear infinite', flexShrink: 0 }} />
-                  <div>
-                    <h4 style={{ margin: '0 0 2px 0', fontSize: '14px', fontWeight: 700, color: '#3b82f6' }}>
-                      Executing eZee Room Booking API...
-                    </h4>
-                    <p style={{ margin: 0, fontSize: '12px', color: 'var(--color-text-muted)' }}>
-                      POST /ezee-api/booking/reservation_api/listing.php?request_type=InsertBooking&HotelCode={resolvedHotelCode}...
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {bookingError && (
-                <div style={{
-                  background: 'rgba(239, 68, 68, 0.08)',
-                  border: '1px solid rgba(239, 68, 68, 0.25)',
-                  borderRadius: '12px',
-                  padding: '16px',
-                  marginBottom: '18px'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
-                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', flex: 1 }}>
-                      <AlertTriangle size={20} color="#ef4444" style={{ flexShrink: 0, marginTop: '2px' }} />
-                      <div>
-                        <h4 style={{ margin: '0 0 4px 0', fontSize: '14px', fontWeight: 700, color: '#ef4444' }}>
-                          Booking API Response Error
-                        </h4>
-                        <p style={{ margin: 0, fontSize: '12px', color: 'var(--color-text-main)', lineHeight: 1.5, wordBreak: 'break-word' }}>
-                          {bookingError}
-                        </p>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => callBookingApi(bookingPayload)}
-                      disabled={bookingLoading}
-                      style={{
-                        padding: '8px 14px',
-                        borderRadius: '8px',
-                        border: 'none',
-                        background: '#ef4444',
-                        color: '#fff',
-                        fontSize: '12px',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px'
-                      }}
-                    >
-                      <RotateCcw size={14} /> Retry API
-                    </button>
-                  </div>
-                </div>
-              )}
-              {activeTab === 'summary' ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-                  {/* API Key Missing Notice & Input */}
-                  {!effectiveApiKey && (
-                    <div style={{
-                      background: 'rgba(239, 68, 68, 0.08)',
-                      border: '1px solid rgba(239, 68, 68, 0.25)',
-                      borderRadius: '12px',
-                      padding: '14px 16px',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '8px'
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <Key size={16} color="#ef4444" />
-                        <span style={{ fontSize: '13px', fontWeight: 700, color: '#ef4444' }}>
-                          eZee API Key is missing for Hotel Code {effectiveHotelCode || 'N/A'}
-                        </span>
-                      </div>
-                      <p style={{ margin: 0, fontSize: '12px', color: 'var(--color-text-muted)' }}>
-                        {fetchingKey ? 'Searching API Key from Zoho Building records...' : 'eZee requires APIKey as a mandatory parameter. Enter the API Key below to proceed:'}
-                      </p>
-                      <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
-                        <input
-                          type="text"
-                          value={apiKeyOverride}
-                          onChange={(e) => setApiKeyOverride(e.target.value.trim())}
-                          placeholder="Paste eZee API Key here..."
-                          style={{
-                            flex: 1,
-                            padding: '8px 12px',
-                            borderRadius: '6px',
-                            border: '1px solid var(--color-border)',
-                            background: 'var(--color-bg-secondary)',
-                            color: 'var(--color-text-main)',
-                            fontSize: '13px',
-                            outline: 'none'
-                          }}
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Property & Room Section */}
-                  <div style={{ background: 'var(--color-bg-main)', border: '1px solid var(--color-border)', borderRadius: '12px', padding: '16px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', color: 'var(--color-text-muted)', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>
-                      <Building2 size={14} color="var(--color-accent)" /> eZee Property & Room Identifiers
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '12px' }}>
-                      <div style={{ background: 'var(--color-bg-secondary)', padding: '10px 12px', borderRadius: '8px' }}>
-                        <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', display: 'block' }}>Hotel Code</span>
-                        <strong style={{ fontSize: '13px', color: 'var(--color-text-main)' }}>{effectiveHotelCode || 'N/A'}</strong>
-                      </div>
-                      <div style={{ background: 'var(--color-bg-secondary)', padding: '10px 12px', borderRadius: '8px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>eZee API Key</span>
-                          <span style={{
-                            fontSize: '10px',
-                            fontWeight: 700,
-                            padding: '1px 6px',
-                            borderRadius: '4px',
-                            background: effectiveApiKey ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
-                            color: effectiveApiKey ? '#10b981' : '#ef4444'
-                          }}>
-                            {effectiveApiKey ? 'Loaded' : 'Missing'}
-                          </span>
-                        </div>
-                        <strong style={{ fontSize: '12px', color: effectiveApiKey ? 'var(--color-text-main)' : '#ef4444', fontFamily: 'monospace' }}>
-                          {effectiveApiKey ? `${effectiveApiKey.slice(0, 5)}...${effectiveApiKey.slice(-4)}` : 'Not provided'}
-                        </strong>
-                      </div>
-                      <div style={{ background: 'var(--color-bg-secondary)', padding: '10px 12px', borderRadius: '8px' }}>
-                        <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', display: 'block' }}>Room Type ID</span>
-                        <strong style={{ fontSize: '13px', color: 'var(--color-text-main)' }}>{effectiveRoomTypeId || 'N/A'}</strong>
-                      </div>
-                      <div style={{ background: 'var(--color-bg-secondary)', padding: '10px 12px', borderRadius: '8px' }}>
-                        <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', display: 'block' }}>Rate Type ID</span>
-                        <strong style={{ fontSize: '13px', color: 'var(--color-text-main)' }}>{effectiveRateTypeId || 'N/A'}</strong>
-                      </div>
-                      <div style={{ background: 'var(--color-bg-secondary)', padding: '10px 12px', borderRadius: '8px' }}>
-                        <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', display: 'block' }}>Room Rate ID (Rateplan)</span>
-                        <strong style={{ fontSize: '13px', color: 'var(--color-text-main)' }}>{effectiveRoomRateId || 'N/A'}</strong>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Dates & Guests */}
-                  <div style={{ background: 'var(--color-bg-main)', border: '1px solid var(--color-border)', borderRadius: '12px', padding: '16px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', color: 'var(--color-text-muted)', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>
-                      <Calendar size={14} color="var(--color-accent)" /> Stay Schedule & Occupancy
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '12px' }}>
-                      <div style={{ background: 'var(--color-bg-secondary)', padding: '10px 12px', borderRadius: '8px' }}>
-                        <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', display: 'block' }}>Check-in</span>
-                        <strong style={{ fontSize: '13px', color: 'var(--color-text-main)' }}>{bookingPayload.checkInDate}</strong>
-                      </div>
-                      <div style={{ background: 'var(--color-bg-secondary)', padding: '10px 12px', borderRadius: '8px' }}>
-                        <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', display: 'block' }}>Check-out</span>
-                        <strong style={{ fontSize: '13px', color: 'var(--color-text-main)' }}>{bookingPayload.checkOutDate}</strong>
-                      </div>
-                      <div style={{ background: 'var(--color-bg-secondary)', padding: '10px 12px', borderRadius: '8px' }}>
-                        <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', display: 'block' }}>Guests</span>
-                        <strong style={{ fontSize: '13px', color: 'var(--color-text-main)' }}>
-                          {bookingPayload.numAdults} Adult(s), {bookingPayload.numChildren} Child
-                        </strong>
-                      </div>
-                      <div style={{ background: 'var(--color-bg-secondary)', padding: '10px 12px', borderRadius: '8px' }}>
-                        <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', display: 'block' }}>Rooms</span>
-                        <strong style={{ fontSize: '13px', color: 'var(--color-text-main)' }}>{bookingPayload.numRooms} Room(s)</strong>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Guest Information */}
-                  <div style={{ background: 'var(--color-bg-main)', border: '1px solid var(--color-border)', borderRadius: '12px', padding: '16px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', color: 'var(--color-text-muted)', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>
-                      <User size={14} color="var(--color-accent)" /> Primary Guest Information
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '12px' }}>
-                      <div style={{ background: 'var(--color-bg-secondary)', padding: '10px 12px', borderRadius: '8px' }}>
-                        <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', display: 'block' }}>Full Name</span>
-                        <strong style={{ fontSize: '13px', color: 'var(--color-text-main)' }}>
-                          {bookingPayload.guest?.title} {bookingPayload.guest?.firstName} {bookingPayload.guest?.lastName}
-                        </strong>
-                      </div>
-                      <div style={{ background: 'var(--color-bg-secondary)', padding: '10px 12px', borderRadius: '8px' }}>
-                        <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', display: 'block' }}>Email Address</span>
-                        <strong style={{ fontSize: '13px', color: 'var(--color-text-main)' }}>{bookingPayload.guest?.email}</strong>
-                      </div>
-                      <div style={{ background: 'var(--color-bg-secondary)', padding: '10px 12px', borderRadius: '8px' }}>
-                        <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', display: 'block' }}>Phone Number</span>
-                        <strong style={{ fontSize: '13px', color: 'var(--color-text-main)' }}>{bookingPayload.guest?.phone}</strong>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Pricing Breakdown */}
-                  <div style={{ background: 'var(--color-bg-main)', border: '1px solid var(--color-border)', borderRadius: '12px', padding: '16px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', color: 'var(--color-text-muted)', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>
-                      <CreditCard size={14} color="var(--color-accent)" /> Financial Summary
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', fontSize: '13px', color: 'var(--color-text-muted)' }}>
-                      <span>Subtotal</span>
-                      <span style={{ color: 'var(--color-text-main)', fontWeight: 600 }}>MYR {bookingPayload.subtotalAmount}</span>
-                    </div>
-                    {bookingPayload.appliedPromo && (
-                      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', fontSize: '13px', color: '#10b981' }}>
-                        <span>Promo Code ({bookingPayload.appliedPromo.code})</span>
-                        <span style={{ fontWeight: 600 }}>- MYR {bookingPayload.discountAmount}</span>
-                      </div>
-                    )}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0 4px', borderTop: '1px solid var(--color-border)', marginTop: '8px', fontSize: '15px', fontWeight: 800 }}>
-                      <span style={{ color: 'var(--color-text-main)' }}>Total Amount</span>
-                      <span style={{ color: 'var(--color-accent)' }}>MYR {bookingPayload.totalAmount}</span>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                /* RAW JSON TAB */
-                <div style={{ position: 'relative' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                    <span style={{ fontSize: '12px', color: 'var(--color-text-muted)', fontWeight: 600 }}>
-                      BookingData JSON for /ezee-api/booking/reservation_api/listing.php (InsertBooking)
-                    </span>
-                    <button
-                      type="button"
-                      onClick={handleCopyJson}
-                      style={{
-                        padding: '6px 12px',
-                        background: copied ? '#10b981' : 'var(--color-accent)',
-                        color: '#fff',
-                        border: 'none',
-                        borderRadius: '6px',
-                        fontSize: '12px',
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        transition: 'background 0.2s'
-                      }}
-                    >
-                      {copied ? <Check size={14} /> : <Copy size={14} />}
-                      {copied ? 'Copied to Clipboard' : 'Copy BookingData JSON'}
-                    </button>
-                  </div>
-                  <pre style={{
-                    margin: 0,
-                    padding: '16px',
-                    borderRadius: '10px',
-                    background: '#0b0f19',
-                    color: '#38bdf8',
-                    fontFamily: 'monospace',
-                    fontSize: '13px',
-                    lineHeight: '1.5',
-                    overflowX: 'auto',
-                    border: '1px solid #1e293b'
-                  }}>
-                    {JSON.stringify(bookingData, null, 2)}
-                  </pre>
-                </div>
-              )}
-            </div>
-
-            {/* Modal Footer */}
-            <div style={{
-              padding: '16px 24px',
-              borderTop: '1px solid var(--color-border)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              background: 'var(--color-bg-main)',
-              gap: '12px',
-              flexWrap: 'wrap'
-            }}>
-              <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
-                {bookingLoading
-                  ? 'Calling /ezee-api/booking/reservation_api/listing.php?request_type=InsertBooking...'
-                  : bookingError
-                    ? 'Payment successful. Booking API error returned.'
-                    : 'Payment successful. Press Make Booking to finalize.'}
-              </span>
-              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  style={{
-                    padding: '10px 18px',
-                    borderRadius: '8px',
-                    border: '1px solid var(--color-border)',
-                    background: 'transparent',
-                    color: 'var(--color-text-main)',
-                    fontSize: '13px',
-                    fontWeight: 600,
-                    cursor: 'pointer'
-                  }}
-                >
-                  Close Modal
-                </button>
-
-                {/* Make Booking Button - ONLY calls API on press */}
-                <button
-                  type="button"
-                  id="make-booking-button"
-                  onClick={() => callBookingApi(bookingPayload)}
-                  disabled={bookingLoading}
-                  style={{
-                    padding: '11px 24px',
-                    borderRadius: '8px',
-                    border: 'none',
-                    background: bookingError ? '#ef4444' : 'var(--color-accent)',
-                    color: '#fff',
-                    fontSize: '13px',
-                    fontWeight: 700,
-                    cursor: bookingLoading ? 'not-allowed' : 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '7px',
-                    boxShadow: '0 4px 14px rgba(197, 168, 128, 0.35)',
-                    transition: 'all 0.2s ease'
-                  }}
-                >
-                  {bookingLoading ? (
-                    <>
-                      <Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} /> Making Booking...
-                    </>
-                  ) : bookingError ? (
-                    <>
-                      <RotateCcw size={15} /> Retry Make Booking
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle2 size={15} /> Make Booking
-                    </>
-                  )}
-                </button>
-
-                {bookingError && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      navigate('/booking-confirmation', {
-                        state: {
-                          booking: { success: true, Booking_No: paymentData.orderid },
-                          bookingPayload,
-                          paymentData,
-                          room: pendingBooking?.room,
-                          hotelName: pendingBooking?.hotelName
-                        }
-                      });
-                    }}
-                    style={{
-                      padding: '10px 16px',
-                      borderRadius: '8px',
-                      border: '1px solid var(--color-border)',
-                      background: 'var(--color-bg-secondary)',
-                      color: 'var(--color-text-main)',
-                      fontSize: '13px',
-                      fontWeight: 600,
-                      cursor: 'pointer'
-                    }}
-                  >
-                    Proceed to Confirmation
-                  </button>
-                )}
-
-                <button
-                  type="button"
-                  onClick={() => navigate('/online-booking')}
-                  style={{
-                    padding: '10px 16px',
-                    borderRadius: '8px',
-                    border: '1px solid var(--color-border)',
-                    background: 'transparent',
-                    color: 'var(--color-text-muted)',
-                    fontSize: '13px',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px'
-                  }}
-                >
-                  Back to Online Booking <ExternalLink size={14} />
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================== */}
       {/* FAILED MODAL: PAYMENT FAILED MODAL                         */}
       {/* ========================================================== */}
       {showModal && isFailed && (
@@ -1261,7 +750,7 @@ const PaymentReturn = () => {
                 </div>
                 <div>
                   <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: 'var(--color-text-main)', fontFamily: 'var(--font-heading)' }}>
-                    Payment Failed (Sandbox)
+                    Payment Failed
                   </h3>
                   <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: 'var(--color-text-muted)' }}>
                     Order ID: <strong>{paymentData.orderid || pendingBooking?.orderid || 'N/A'}</strong>
@@ -1299,7 +788,7 @@ const PaymentReturn = () => {
                       Transaction Declined or Cancelled
                     </h4>
                     <p style={{ margin: 0, fontSize: '13px', color: 'var(--color-text-main)', lineHeight: 1.5 }}>
-                      {paymentData.error_desc || 'The payment transaction could not be authorized or was cancelled in the Fiuu sandbox gateway.'}
+                      {paymentData.error_desc || 'The payment transaction could not be authorized or was cancelled in the Fiuu payment gateway.'}
                     </p>
                   </div>
                 </div>
