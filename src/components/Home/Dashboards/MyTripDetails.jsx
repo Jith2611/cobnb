@@ -19,10 +19,11 @@ const MyTripDetails = () => {
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
   
   // Issue Form
+  const [complaintType, setComplaintType] = useState('');
   const [issueTitle, setIssueTitle] = useState('');
   const [issueBody, setIssueBody] = useState('');
   const [issueImage, setIssueImage] = useState(null);
-  const [issueDate, setIssueDate] = useState('');
+  const [guestAvailableDateTime, setGuestAvailableDateTime] = useState('');
   const [rating, setRating] = useState(0);
 
   const fileInputRef = useRef(null);
@@ -133,13 +134,34 @@ const MyTripDetails = () => {
     return '';
   };
 
+  const formatDateTime = (val) => {
+    if (!val) return '';
+    if (val.includes('T')) {
+      const [date, time] = val.split('T');
+      const timeParts = (time || '').split(':');
+      const hh = (timeParts[0] || '00').padStart(2, '0');
+      const mm = (timeParts[1] || '00').padStart(2, '0');
+      const ss = (timeParts[2] || '00').padStart(2, '0');
+      return `${date} ${hh}:${mm}:${ss}`;
+    }
+    if (val.includes(' ')) {
+      const [date, time] = val.split(' ');
+      const timeParts = (time || '').split(':');
+      const hh = (timeParts[0] || '00').padStart(2, '0');
+      const mm = (timeParts[1] || '00').padStart(2, '0');
+      const ss = (timeParts[2] || '00').padStart(2, '0');
+      return `${date} ${hh}:${mm}:${ss}`;
+    }
+    return `${val} 00:00:00`;
+  };
+
   const submitIssue = async (e) => {
     e.preventDefault();
     if (!preData?.Listing_Name?.ID) {
       alert('Raise Complaint allowed only after unit assigned!');
       return;
     }
-    if (!issueTitle || !issueBody || !issueDate || !rating) {
+    if (!complaintType || !issueTitle || !issueBody || !guestAvailableDateTime || !rating) {
       alert('Please fill all the fields!');
       return;
     }
@@ -148,8 +170,8 @@ const MyTripDetails = () => {
     try {
       const imageUrl = await uploadImageToS3(issueImage);
       
-      // format date to YYYY-MM-DD HH:mm:ss (append a generic time for now)
-      const formattedDate = `${issueDate} 12:00:00`;
+      // format date to yyyy-MM-dd HH:mm:ss
+      const formattedDate = formatDateTime(guestAvailableDateTime);
       
       let params = {
         data: {
@@ -157,6 +179,7 @@ const MyTripDetails = () => {
           Building_Name: hotelDetails?.ID || '',
           Listing_Name: preData?.Listing_Name?.ID,
           Do_you_have_problem_on_your_Arrival: 'Yes',
+          Complaint_Type: complaintType,
           Title: issueTitle,
           Describe_the_Problem: issueBody,
           Picture_of_the_Problem: imageUrl,
@@ -175,6 +198,12 @@ const MyTripDetails = () => {
       if (res?.data?.code === 3000) {
         alert('Submission successful. Our team will review your complaint.');
         setShowIssueModal(false);
+        setComplaintType('');
+        setIssueTitle('');
+        setIssueBody('');
+        setIssueImage(null);
+        setGuestAvailableDateTime('');
+        setRating(0);
       }
     } catch (err) {
       console.error(err);
@@ -398,6 +427,32 @@ const MyTripDetails = () => {
                 />
               </div>
 
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: 'var(--color-text-muted)', textTransform: 'uppercase', marginBottom: '8px' }}>Complaint Type</label>
+                <select
+                  value={complaintType}
+                  onChange={(e) => setComplaintType(e.target.value)}
+                  required
+                  style={{
+                    width: '100%',
+                    padding: '16px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--color-border)',
+                    backgroundColor: 'var(--color-bg-main)',
+                    color: complaintType ? 'var(--color-primary)' : 'var(--color-text-muted)',
+                    fontSize: '15px',
+                    outline: 'none',
+                    cursor: 'pointer',
+                    boxSizing: 'border-box'
+                  }}
+                >
+                  <option value="" disabled>Select Complaint Type</option>
+                  <option value="Maintanance">Maintanance</option>
+                  <option value="Housekeeping">Housekeeping</option>
+                  <option value="Others">Others</option>
+                </select>
+              </div>
+
               <input 
                 type="text" placeholder="Title (e.g., Missing Towel)" 
                 value={issueTitle} onChange={e => setIssueTitle(e.target.value)} required
@@ -410,11 +465,11 @@ const MyTripDetails = () => {
               />
 
               <div style={{ marginBottom: '24px' }}>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: 'var(--color-text-muted)', textTransform: 'uppercase', marginBottom: '8px' }}>Your Availability Date</label>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: 'var(--color-text-muted)', textTransform: 'uppercase', marginBottom: '8px' }}>Guest Available Date & Time</label>
                 <input 
-                  type="date" 
-                  value={issueDate} onChange={e => setIssueDate(e.target.value)} required
-                  style={{ width: '100%', padding: '16px', borderRadius: '8px', border: '1px solid var(--color-border)', backgroundColor: 'var(--color-bg-main)', color: 'var(--color-primary)', fontSize: '15px' }}
+                  type="datetime-local" 
+                  value={guestAvailableDateTime} onChange={e => setGuestAvailableDateTime(e.target.value)} required
+                  style={{ width: '100%', padding: '16px', borderRadius: '8px', border: '1px solid var(--color-border)', backgroundColor: 'var(--color-bg-main)', color: 'var(--color-primary)', fontSize: '15px', boxSizing: 'border-box', outline: 'none' }}
                 />
               </div>
 

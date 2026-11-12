@@ -380,21 +380,21 @@ const GuestDashboard = () => {
       {/* Floating Booking Widget */}
       <div className="booking-widget-container" style={{ position: 'relative', bottom: 'auto', marginTop: '-40px', marginBottom: '40px', left: 0, right: 0 }}>
         <div className="booking-widget">
-          <div className="booking-field" onClick={() => navigate('/search')}>
+          <div className="booking-field" onClick={() => navigate('/online-booking')}>
             <span className="field-label">Destination</span>
             <span className="field-value">Where to?</span>
           </div>
           <div className="booking-divider"></div>
-          <div className="booking-field" onClick={() => navigate('/search')}>
+          <div className="booking-field" onClick={() => navigate('/online-booking')}>
             <span className="field-label">Dates</span>
             <span className="field-value">Add Dates</span>
           </div>
           <div className="booking-divider"></div>
-          <div className="booking-field" onClick={() => navigate('/search')}>
+          <div className="booking-field" onClick={() => navigate('/online-booking')}>
             <span className="field-label">Rooms & Guests</span>
             <span className="field-value">1 Room: 2 Guests</span>
           </div>
-          <button className="booking-btn" onClick={() => navigate('/search')}>
+          <button className="booking-btn" onClick={() => navigate('/online-booking')}>
             Find Hotels
           </button>
         </div>

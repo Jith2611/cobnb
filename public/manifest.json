@@ -1,0 +1,19 @@
+{
+  "name": "COBNB+",
+  "short_name": "COBNB+",
+  "description": "Maximise Your Property Income with COBNB+",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f0f13",
+  "theme_color": "#0f0f13",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/images/cobnblogonew.png",
+      "sizes": "192x192 512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
+

@@ -26,6 +26,7 @@ import HotelCheckout from './components/Home/Dashboards/HotelCheckout';
 import HotelBookings from './components/Home/Dashboards/HotelBookings';
 import PaymentReturn from './components/Home/Dashboards/PaymentReturn';
 import BookingConfirmation from './components/Home/Dashboards/BookingConfirmation';
+import InstallPrompt from './components/Common/InstallPrompt';
 import './App.css';
 
 const ProtectedRoute = ({ children }) => {
@@ -53,34 +54,37 @@ const Placeholder = ({ title }) => (
 
 function App() {
   return (
-    <Routes>
-      <Route path="/" element={<Splash />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/signup" element={<Signup />} />
-      <Route path="/verify-otp" element={<VerifyOtp />} />
-      <Route path="/forgot-password" element={<ForgotPassword />} />
-      <Route path="/update-password" element={<UpdatePassword />} />
-      
-      {/* Protected Dashboard Routes */}
-      <Route path="/welcome" element={<DashboardRoute><Home /></DashboardRoute>} />
-      <Route path="/calendar" element={<DashboardRoute><Calendar /></DashboardRoute>} />
-      <Route path="/my-bookings" element={<DashboardRoute><MyBookings /></DashboardRoute>} />
-      <Route path="/search" element={<DashboardRoute><Search /></DashboardRoute>} />
-      <Route path="/profile" element={<DashboardRoute><Profile /></DashboardRoute>} />
-      <Route path="/generate-statement" element={<DashboardRoute><GenerateStatement /></DashboardRoute>} />
-      <Route path="/trip-details" element={<DashboardRoute><MyTripDetails /></DashboardRoute>} />
-      <Route path="/revenue-dashboard" element={<DashboardRoute><RevenueDashboard /></DashboardRoute>} />
-      <Route path="/agent-revenue-dashboard" element={<DashboardRoute><AgentRevenueDashboard /></DashboardRoute>} />
-      <Route path="/rewards" element={<DashboardRoute><Rewards /></DashboardRoute>} />
-      <Route path="/reward-details" element={<DashboardRoute><RewardDetails /></DashboardRoute>} />
-      <Route path="/booking" element={<DashboardRoute><Booking /></DashboardRoute>} />
-      <Route path="/online-booking" element={<DashboardRoute><OnlineBooking /></DashboardRoute>} />
-      <Route path="/hotel-availability" element={<DashboardRoute><HotelAvailability /></DashboardRoute>} />
-      <Route path="/hotel-checkout" element={<DashboardRoute><HotelCheckout /></DashboardRoute>} />
-      <Route path="/hotel-bookings" element={<DashboardRoute><HotelBookings /></DashboardRoute>} />
-      <Route path="/payment-return" element={<DashboardRoute><PaymentReturn /></DashboardRoute>} />
-      <Route path="/booking-confirmation" element={<DashboardRoute><BookingConfirmation /></DashboardRoute>} />
-    </Routes>
+    <>
+      <Routes>
+        <Route path="/" element={<Splash />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
+        <Route path="/verify-otp" element={<VerifyOtp />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/update-password" element={<UpdatePassword />} />
+        
+        {/* Protected Dashboard Routes */}
+        <Route path="/welcome" element={<DashboardRoute><Home /></DashboardRoute>} />
+        <Route path="/calendar" element={<DashboardRoute><Calendar /></DashboardRoute>} />
+        <Route path="/my-bookings" element={<DashboardRoute><MyBookings /></DashboardRoute>} />
+        <Route path="/search" element={<DashboardRoute><Search /></DashboardRoute>} />
+        <Route path="/profile" element={<DashboardRoute><Profile /></DashboardRoute>} />
+        <Route path="/generate-statement" element={<DashboardRoute><GenerateStatement /></DashboardRoute>} />
+        <Route path="/trip-details" element={<DashboardRoute><MyTripDetails /></DashboardRoute>} />
+        <Route path="/revenue-dashboard" element={<DashboardRoute><RevenueDashboard /></DashboardRoute>} />
+        <Route path="/agent-revenue-dashboard" element={<DashboardRoute><AgentRevenueDashboard /></DashboardRoute>} />
+        <Route path="/rewards" element={<DashboardRoute><Rewards /></DashboardRoute>} />
+        <Route path="/reward-details" element={<DashboardRoute><RewardDetails /></DashboardRoute>} />
+        <Route path="/booking" element={<DashboardRoute><Booking /></DashboardRoute>} />
+        <Route path="/online-booking" element={<DashboardRoute><OnlineBooking /></DashboardRoute>} />
+        <Route path="/hotel-availability" element={<DashboardRoute><HotelAvailability /></DashboardRoute>} />
+        <Route path="/hotel-checkout" element={<DashboardRoute><HotelCheckout /></DashboardRoute>} />
+        <Route path="/hotel-bookings" element={<DashboardRoute><HotelBookings /></DashboardRoute>} />
+        <Route path="/payment-return" element={<DashboardRoute><PaymentReturn /></DashboardRoute>} />
+        <Route path="/booking-confirmation" element={<DashboardRoute><BookingConfirmation /></DashboardRoute>} />
+      </Routes>
+      <InstallPrompt />
+    </>
   );
 }
 

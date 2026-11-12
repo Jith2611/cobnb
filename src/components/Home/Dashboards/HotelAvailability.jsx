@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import zohoAxios from '../../../utility/axiosInstance';
 import { ArrowLeft, Search, Users, Bed, Check, ChevronLeft, ChevronRight, X, Sparkles, Building2, AlertCircle, Calendar } from 'lucide-react';
+import HotelBookingLoadingOverlay from './HotelBookingLoadingOverlay';
 
 const ImageSlider = ({ images, mobileAppImage, hotelImage, onImageClick }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -452,10 +453,11 @@ const HotelAvailability = () => {
 
     setLoading(true);
     setError(null);
+    const searchStartTime = Date.now();
 
     const ezeeUrl = `/ezee-api/booking/reservation_api/listing.php?request_type=RoomList&HotelCode=${hotelCode}&APIKey=${apiKey}&check_in_date=${check_in_date}&check_out_date=${check_out_date}&number_adults=${number_adults}&number_children=${number_children}&num_rooms=${num_rooms}&property_configuration_info=0&showtax=1&show_only_available_rooms=1&language=en&packagefor=DESKTOP&promotionfor=DESKTOP`;
     const zohoReportUrl = `/zoho-api/api/v2/brandontan18/housekeeping-system/report/Room_Type_Mapping_Report`;
-    const buildingReportUrl = `/zoho-api/api/v2/brandontan18/housekeeping-system/report/All_Building_Report?Active=Active?Booking_Engine_Active=true`;
+    const buildingReportUrl = `/zoho-api/api/v2/brandontan18/housekeeping-system/report/All_Building_Report?Booking_Engine_Active=true`;
 
     try {
       // Fetch eZee (availability & price), Zoho room mapping, and Zoho building report concurrently
@@ -900,6 +902,11 @@ const HotelAvailability = () => {
       console.error('Error fetching room availability:', err);
       setError('Failed to fetch room information and availability: ' + (err.message || ''));
     } finally {
+      const elapsed = Date.now() - searchStartTime;
+      const minDisplayTime = 800;
+      if (elapsed < minDisplayTime) {
+        await new Promise(res => setTimeout(res, minDisplayTime - elapsed));
+      }
       setLoading(false);
     }
   };
@@ -933,6 +940,14 @@ const HotelAvailability = () => {
 
   return (
     <div style={{ minHeight: '100vh', padding: '100px 24px 60px', position: 'relative', background: 'var(--color-bg-main)' }}>
+      {/* Full-Screen Hotel Booking Search Animation Overlay */}
+      {loading && (
+        <HotelBookingLoadingOverlay
+          hotelName={hotelName}
+          searchParams={searchParams}
+        />
+      )}
+
       <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
 
         {/* Navigation / Header */}
@@ -1040,7 +1055,7 @@ const HotelAvailability = () => {
                   <div className="spinner-light" style={{ width: '18px', height: '18px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
                 ) : (
                   <>
-                    <Search size={18} /> Search Rates
+                    <Search size={18} /> Search Rooms
                   </>
                 )}
               </button>

@@ -1,6 +1,8 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Outfit:wght@300;400;500;600;700;800&display=swap');
 
-:root {
+:root,
+[data-theme='light'] {
+  color-scheme: light;
   /* Color Palette - Marriott Luxury Vibe */
   --color-primary: #111111;       /* Deep Charcoal / Near Black */
   --color-secondary: #ffffff;     /* Stark White */
@@ -52,17 +54,20 @@
   --color-border: #333333;
 }
 
-[data-theme='dark'] input[type="date"] {
+[data-theme='dark'] input[type="date"],
+[data-theme='dark'] input[type="datetime-local"] {
   color-scheme: dark !important;
 }
 
-[data-theme='dark'] input[type="date"]::-webkit-calendar-picker-indicator {
+[data-theme='dark'] input[type="date"]::-webkit-calendar-picker-indicator,
+[data-theme='dark'] input[type="datetime-local"]::-webkit-calendar-picker-indicator {
   filter: brightness(0) invert(1) !important;
   cursor: pointer;
   opacity: 0.95 !important;
 }
 
-[data-theme='dark'] input[type="date"]::-webkit-calendar-picker-indicator:hover {
+[data-theme='dark'] input[type="date"]::-webkit-calendar-picker-indicator:hover,
+[data-theme='dark'] input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover {
   opacity: 1 !important;
 }
 
@@ -171,4 +176,46 @@ button {
   * {
     /* If we used rems this would work, but zoom handles px */
   }
+}
+
+/* PWA Bottom Sheet Animations */
+@keyframes pwaSlideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes pwaFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes pwaBounceHint {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(6px);
+  }
+}
+
+.pwa-modal-overlay {
+  animation: pwaFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.pwa-modal-sheet {
+  animation: pwaSlideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.pwa-bounce-indicator {
+  animation: pwaBounceHint 1.5s ease-in-out infinite;
 }
